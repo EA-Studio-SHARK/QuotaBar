@@ -1,22 +1,20 @@
 # QuotaBar
 
-macOS menu bar app that shows AI coding quota at a glance — **Claude Code**, **Codex**, **ChatGPT/GPT**, **Cursor**, and **Grok**.
+macOS menu bar — glance AI coding quotas for **Claude**, **Codex**, **Copilot**, **Cursor**, and **Grok**.
 
-Click the gauge icon → see usage % , reset countdowns, and plan details. No manual token paste: it reuses logins you already have on the machine.
+Minimal list UI. Zero config: reuses logins already on your Mac.
 
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black) ![Swift](https://img.shields.io/badge/Swift-5.9-orange) ![License: MIT](https://img.shields.io/badge/License-MIT-blue)
 
 ## Providers
 
-| Tile | Source | Auth |
-|------|--------|------|
-| **Claude** | `GET api.anthropic.com/api/oauth/usage` | Keychain `Claude Code-credentials` / `~/.claude/.credentials.json` |
-| **Codex** | `GET chatgpt.com/backend-api/wham/usage` | `~/.codex/auth.json` (Codex CLI login) |
-| **GPT** | Same OpenAI `wham/usage` (plan / credits / windows) | `~/.codex/auth.json` |
-| **Cursor** | `GetCurrentPeriodUsage` on `api2.cursor.sh` | Cursor `state.vscdb` access token |
-| **Grok** | `grok.com/rest/rate-limits` + subscriptions | Chrome `.grok.com` SSO cookies (preferred); `~/.grok/auth.json` fallback |
-
-Undocumented provider endpoints may change without notice. QuotaBar degrades per-provider — one failure does not blank the others.
+| | Auth |
+|--|--|
+| **Claude** | Claude Code Keychain / `~/.claude` |
+| **Codex** | `~/.codex/auth.json` (OpenAI / ChatGPT-linked) |
+| **Copilot** | GitHub token (`github.com` Keychain / Copilot `apps.json` / `gh`) |
+| **Cursor** | Cursor `state.vscdb` |
+| **Grok** | Chrome `grok.com` SSO / `~/.grok/auth.json` |
 
 ## Install
 
@@ -26,53 +24,10 @@ cd QuotaBar
 ./scripts/install.sh
 ```
 
-Builds a release `.app`, copies it to `~/Applications/QuotaBar.app`, and launches it.
-
-Build only:
-
-```bash
-./scripts/build_app.sh
-open dist/QuotaBar.app
-```
-
-Requirements: macOS 14+, Xcode Command Line Tools / Swift 5.9+.
-
-## Usage
-
-- Menu bar shows the **highest** usage % across providers
-- Click for cards with progress bars and details
-- **Refresh** (⌘R) · **Launch at login** · **Quit**
-- Notification when a provider hits ≥ 90%
-
-First run may prompt for Keychain access (Claude credentials / Chrome Safe Storage). Choose **Always Allow**.
-
 ## Privacy
 
-- Runs entirely on your Mac
-- Reads local credentials already created by Claude Code / Codex / Cursor / Chrome / Grok CLI
-- Calls provider APIs only to fetch your own usage
-- Does not upload data to any third-party server
-- Single-instance lock under `~/Library/Application Support/QuotaBar/`
-
-## Development
-
-```bash
-swift build -c release
-./scripts/build_app.sh
-```
-
-Layout:
-
-```
-Sources/QuotaBar/          # SwiftUI MenuBarExtra app
-  ClaudeProvider.swift
-  OpenAIProvider.swift     # Codex + GPT (shared wham/usage)
-  CursorProvider.swift
-  GrokProvider.swift
-scripts/install.sh
-Info.plist                 # LSUIElement menu-bar app
-```
+Runs locally. Reads credentials your CLIs/IDEs already stored. Does not phone home except to each provider’s own usage API. No secrets are hardcoded in this repo.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT

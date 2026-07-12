@@ -44,10 +44,10 @@ final class UsageStore: ObservableObject {
 
         async let claude = ClaudeProvider.fetch()
         async let codex = CodexProvider.fetch()
-        async let gpt = GPTProvider.fetch()
+        async let copilot = CopilotProvider.fetch()
         async let cursor = CursorProvider.fetch()
         async let grok = GrokProvider.fetch()
-        let results = await [claude, codex, gpt, cursor, grok]
+        let results = await [claude, codex, copilot, cursor, grok]
 
         snapshot = UsageSnapshot(providers: results, fetchedAt: Date())
         notifyIfNeeded(results)

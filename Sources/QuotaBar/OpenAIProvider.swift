@@ -149,7 +149,14 @@ enum CodexProvider {
                 }
             }
             if let plan = res.plan_type {
-                metrics.append(UsageMetric(label: "套餐", percent: nil, detail: plan, resetsAt: nil))
+                metrics.insert(UsageMetric(label: "套餐", percent: nil, detail: plan, resetsAt: nil), at: 0)
+            }
+            if let credits = res.credits {
+                if credits.unlimited == true {
+                    metrics.append(UsageMetric(label: "Credits", percent: nil, detail: "无限", resetsAt: nil))
+                } else if let bal = credits.balance {
+                    metrics.append(UsageMetric(label: "Credits", percent: nil, detail: String(format: "%.2f", bal), resetsAt: nil))
+                }
             }
 
             if let p = primary {
@@ -172,69 +179,3 @@ enum CodexProvider {
     }
 }
 
-enum GPTProvider {
-    static func fetch() async -> ProviderUsage {
-        do {
-            let res = try await OpenAIWham.fetch()
-            var metrics: [UsageMetric] = []
-            var primary: Double?
-
-            let plan = res.plan_type ?? "unknown"
-            metrics.append(UsageMetric(
-                label: "套餐",
-                percent: nil,
-                detail: plan,
-                resetsAt: nil
-            ))
-
-            // ChatGPT / OpenAI account windows (same backend as Codex for ChatGPT-linked accounts)
-            if let w = res.rate_limit?.primary_window, let p = w.used_percent {
-                primary = p
-                let reset = OpenAIWham.resetDate(from: w)
-                metrics.append(UsageMetric(
-                    label: OpenAIWham.windowLabel(seconds: w.limit_window_seconds),
-                    percent: p,
-                    detail: Formatters.countdown(to: reset),
-                    resetsAt: reset
-                ))
-            }
-            if let w = res.rate_limit?.secondary_window, let p = w.used_percent {
-                if primary == nil { primary = p }
-                metrics.append(UsageMetric(
-                    label: "周额度",
-                    percent: p,
-                    detail: Formatters.countdown(to: OpenAIWham.resetDate(from: w)),
-                    resetsAt: OpenAIWham.resetDate(from: w)
-                ))
-            }
-
-            if let credits = res.credits {
-                if credits.unlimited == true {
-                    metrics.append(UsageMetric(label: "Credits", percent: nil, detail: "无限", resetsAt: nil))
-                } else if let bal = credits.balance {
-                    metrics.append(UsageMetric(label: "Credits", percent: nil, detail: String(format: "%.2f", bal), resetsAt: nil))
-                } else if credits.has_credits == false {
-                    metrics.append(UsageMetric(label: "Credits", percent: nil, detail: "无", resetsAt: nil))
-                }
-            }
-
-            if let msg = res.promo?.message, !msg.isEmpty {
-                metrics.append(UsageMetric(label: "提示", percent: nil, detail: String(msg.prefix(80)), resetsAt: nil))
-            }
-
-            if let p = primary {
-                return .fromPercent(.gpt, percent: p, metrics: metrics)
-            }
-            return ProviderUsage(
-                kind: .gpt,
-                status: .ok,
-                primaryPercent: nil,
-                metrics: metrics,
-                errorMessage: nil,
-                updatedAt: Date()
-            )
-        } catch {
-            return .unavailable(.gpt, message: error.localizedDescription)
-        }
-    }
-}

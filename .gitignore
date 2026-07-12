@@ -1,6 +1,7 @@
-.build/
-dist/
-.DS_Store
 *.xcodeproj
-DerivedData/
+.DS_Store
+.build/
 .swiftpm/
+DerivedData/
+dist/
+当前任务结果.md

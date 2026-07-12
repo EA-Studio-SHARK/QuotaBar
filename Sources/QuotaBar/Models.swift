@@ -3,19 +3,19 @@ import Foundation
 enum ProviderKind: String, CaseIterable, Identifiable {
     case claude = "Claude"
     case codex = "Codex"
-    case gpt = "GPT"
+    case copilot = "Copilot"
     case cursor = "Cursor"
     case grok = "Grok"
 
     var id: String { rawValue }
 
-    var subtitle: String {
+    var shortHint: String {
         switch self {
-        case .claude: return "Claude Code"
-        case .codex: return "OpenAI Codex CLI"
-        case .gpt: return "ChatGPT / OpenAI 账号"
-        case .cursor: return "Cursor 会员"
-        case .grok: return "本地 Grok / SuperGrok"
+        case .claude: return "Code"
+        case .codex: return "OpenAI"
+        case .copilot: return "GitHub"
+        case .cursor: return "IDE"
+        case .grok: return "xAI"
         }
     }
 }
@@ -49,26 +49,28 @@ struct ProviderUsage: Identifiable, Equatable {
         return String(format: "%.0f%%", p)
     }
 
+    /// One-line secondary text for minimal UI.
+    var summaryLine: String {
+        if status == .loading { return "…" }
+        if status == .unavailable {
+            return errorMessage ?? "未登录"
+        }
+        if let first = metrics.first(where: { $0.percent != nil && $0.label != "套餐" }) {
+            let bits = [first.label, first.detail].filter { !$0.isEmpty }
+            return bits.joined(separator: " · ")
+        }
+        if let plan = metrics.first(where: { $0.label == "套餐" }) {
+            return plan.detail
+        }
+        return metrics.first?.detail ?? ""
+    }
+
     static func loading(_ kind: ProviderKind) -> ProviderUsage {
-        ProviderUsage(
-            kind: kind,
-            status: .loading,
-            primaryPercent: nil,
-            metrics: [],
-            errorMessage: nil,
-            updatedAt: Date()
-        )
+        ProviderUsage(kind: kind, status: .loading, primaryPercent: nil, metrics: [], errorMessage: nil, updatedAt: Date())
     }
 
     static func unavailable(_ kind: ProviderKind, message: String) -> ProviderUsage {
-        ProviderUsage(
-            kind: kind,
-            status: .unavailable,
-            primaryPercent: nil,
-            metrics: [],
-            errorMessage: message,
-            updatedAt: Date()
-        )
+        ProviderUsage(kind: kind, status: .unavailable, primaryPercent: nil, metrics: [], errorMessage: message, updatedAt: Date())
     }
 
     static func fromPercent(_ kind: ProviderKind, percent: Double, metrics: [UsageMetric]) -> ProviderUsage {
@@ -76,14 +78,7 @@ struct ProviderUsage: Identifiable, Equatable {
         if percent >= 90 { status = .critical }
         else if percent >= 75 { status = .warning }
         else { status = .ok }
-        return ProviderUsage(
-            kind: kind,
-            status: status,
-            primaryPercent: percent,
-            metrics: metrics,
-            errorMessage: nil,
-            updatedAt: Date()
-        )
+        return ProviderUsage(kind: kind, status: status, primaryPercent: percent, metrics: metrics, errorMessage: nil, updatedAt: Date())
     }
 }
 
