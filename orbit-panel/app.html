@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>Orbit</title>
+<style>
+/* ---------- 1:1 复刻 http://localhost:5173/#/ 配色与设计系统 ---------- */
+:root{
+  color-scheme:light;
+  --canvas:oklch(0.975 0 0);
+  --surface:#ffffff;
+  --ink:oklch(0.145 0 0);
+  --muted-ink:oklch(0.48 0 0);
+  --line:oklch(0.90 0 0);
+  --accent-blue:oklch(0.55 0.17 255);
+  --blue:oklch(0.55 0.17 255);
+  --danger:#c23a3a;
+  --promo:#c23a3a;
+  --track:#e4eaf2;
+  --row-tint:#f5f8fc;
+  --background:var(--canvas);
+  --foreground:var(--ink);
+  --card:var(--surface);
+  --card-foreground:var(--ink);
+  --popover:var(--surface);
+  --popover-foreground:var(--ink);
+  --primary:var(--blue);
+  --primary-foreground:#ffffff;
+  --secondary:#f1f4f9;
+  --secondary-foreground:var(--ink);
+  --muted:var(--track);
+  --muted-foreground:var(--muted-ink);
+  --accent:#f1f4f9;
+  --accent-foreground:var(--ink);
+  --destructive:var(--danger);
+  --success:#16a34a;
+  --warning:#c2410c;
+  --star:var(--blue);
+  --border:var(--line);
+  --input:var(--line);
+  --ring:var(--blue);
+  --radius:8px;
+  --radius-card:12px;
+  --radius-badge:6px;
+  --shadow-overlay:0 16px 40px rgb(16 24 40 / 0.12);
+  --font-sans:"SF Pro Text","PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif;
+  --font-mono:"SF Mono",ui-monospace,Menlo,monospace;
+  --ease:cubic-bezier(.22,.68,0,1);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --canvas:#121417;
+    --surface:#1c1e22;
+    --ink:#f1f3f6;
+    --muted-ink:#9aa1ab;
+    --line:#2a2e34;
+    --accent-blue:oklch(0.72 0.15 255);
+    --blue:oklch(0.72 0.15 255);
+    --danger:#e05a5a;
+    --promo:#e05a5a;
+    --track:#243040;
+    --row-tint:#1a1f27;
+    --background:var(--canvas);
+    --foreground:var(--ink);
+    --card:var(--surface);
+    --card-foreground:var(--ink);
+    --popover:var(--surface);
+    --popover-foreground:var(--ink);
+    --primary:var(--blue);
+    --primary-foreground:#121417;
+    --secondary:#1a1f27;
+    --secondary-foreground:var(--ink);
+    --muted:var(--track);
+    --muted-foreground:var(--muted-ink);
+    --accent:#242932;
+    --accent-foreground:var(--ink);
+    --destructive:var(--danger);
+    --success:#34d399;
+    --warning:#f0b429;
+    --star:var(--blue);
+    --border:var(--line);
+    --input:var(--line);
+    --ring:var(--blue);
+    --shadow-overlay:0 16px 40px rgb(0 0 0 / 0.42);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --canvas:#121417;
+  --surface:#1c1e22;
+  --ink:#f1f3f6;
+  --muted-ink:#9aa1ab;
+  --line:#2a2e34;
+  --accent-blue:oklch(0.72 0.15 255);
+  --blue:oklch(0.72 0.15 255);
+  --danger:#e05a5a;
+  --promo:#e05a5a;
+  --track:#243040;
+  --row-tint:#1a1f27;
+  --background:var(--canvas);
+  --foreground:var(--ink);
+  --card:var(--surface);
+  --card-foreground:var(--ink);
+  --popover:var(--surface);
+  --popover-foreground:var(--ink);
+  --primary:var(--blue);
+  --primary-foreground:#121417;
+  --secondary:#1a1f27;
+  --secondary-foreground:var(--ink);
+  --muted:var(--track);
+  --muted-foreground:var(--muted-ink);
+  --accent:#242932;
+  --accent-foreground:var(--ink);
+  --destructive:var(--danger);
+  --success:#34d399;
+  --warning:#f0b429;
+  --star:var(--blue);
+  --border:var(--line);
+  --input:var(--line);
+  --ring:var(--blue);
+  --shadow-overlay:0 16px 40px rgb(0 0 0 / 0.42);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--background);color:var(--foreground);font-family:var(--font-sans);
+  -webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;cursor:default}
+
+.fp-shell{display:flex;flex-direction:column;width:100%;height:100%}
+
+/* ---------- 顶部栏（1:1 复刻 http://localhost:5173/#/ .chrome + .glass-rail + .chip-btn） ---------- */
+.fp-topbar{height:58px;background:color-mix(in oklab,var(--canvas) 86%,#fff);border-bottom:1px solid var(--border);display:grid;
+  grid-template-columns:1fr auto 1fr;align-items:center;padding:0 20px 0 82px;flex:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fp-topbar{background:var(--canvas)}}
+:root[data-theme="dark"] .fp-topbar{background:var(--canvas)}
+body.fullscreen .fp-topbar{padding-left:22px}
+.fp-brand{display:flex;align-items:center;gap:10px;justify-self:start}
+.fp-brand-mark{width:30px;height:30px;border-radius:8px;object-fit:contain;flex:none;display:block}
+.fp-brand-text{display:flex;align-items:baseline;gap:8px}
+.fp-brand-title{font-size:16px;font-weight:650;letter-spacing:-.03em;color:var(--foreground)}
+.fp-brand-byline{font-size:12px;color:var(--muted-foreground);font-weight:450}
+
+/* 液态玻璃胶囊导航 (.glass-rail + .glass-pill) */
+.glass-rail{position:relative;isolation:isolate;display:inline-flex;align-items:center;border-radius:999px;padding:4px;
+  border:1px solid rgb(255 255 255 / 0.55);background:rgb(255 255 255 / 0.58);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / 0.78),inset 0 -1px 0 rgb(255 255 255 / 0.18),0 8px 24px rgb(16 24 40 / 0.07);
+  backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);justify-self:center}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .glass-rail{
+    background:rgb(28 30 34 / 0.55);border-color:rgb(255 255 255 / 0.1);
+    box-shadow:inset 0 1px 0 rgb(255 255 255 / 0.14),0 8px 24px rgb(0 0 0 / 0.35);
+  }
+}
+:root[data-theme="dark"] .glass-rail{
+  background:rgb(28 30 34 / 0.55);border-color:rgb(255 255 255 / 0.1);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / 0.14),0 8px 24px rgb(0 0 0 / 0.35);
+}
+.glass-tab{position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px;
+  border-radius:999px;font-size:13px;font-weight:600;color:var(--blue);
+  background:rgb(255 255 255 / 0.78);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / 0.95),inset 0 -0.5px 0 rgb(255 255 255 / 0.35),0 1px 6px rgb(16 24 40 / 0.1),0 0 0 1px rgb(255 255 255 / 0.55)}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .glass-tab{
+    background:rgb(255 255 255 / 0.12);
+    box-shadow:inset 0 1px 0 rgb(255 255 255 / 0.28),0 2px 10px rgb(0 0 0 / 0.28),0 0 0 1px rgb(255 255 255 / 0.12);
+  }
+}
+:root[data-theme="dark"] .glass-tab{
+  background:rgb(255 255 255 / 0.12);
+  box-shadow:inset 0 1px 0 rgb(255 255 255 / 0.28),0 2px 10px rgb(0 0 0 / 0.28),0 0 0 1px rgb(255 255 255 / 0.12);
+}
+.fp-badge{border-radius:999px;background:color-mix(in oklab,var(--blue) 14%,transparent);
+  color:var(--blue);font-size:11.5px;font-weight:650;padding:1px 7px;font-family:var(--font-mono)}
+
+.fp-topbar-actions{justify-self:end;display:flex;align-items:center;gap:8px}
+.fp-star-btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;
+  height:36px;padding:0 14px;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;
+  box-shadow:0 4px 12px rgb(20 16 40 / 0.05);cursor:pointer;transition:border-color .15s,color .15s,transform .15s}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .fp-star-btn{box-shadow:0 6px 16px rgb(0 0 0 / 0.28)}
+}
+:root[data-theme="dark"] .fp-star-btn{box-shadow:0 6px 16px rgb(0 0 0 / 0.28)}
+.fp-star-btn:hover{border-color:color-mix(in oklab,var(--blue) 45%,var(--line));color:var(--blue)}
+.fp-star-btn svg{width:14px;height:14px;fill:var(--blue)}
+.fp-icon-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
+  box-shadow:0 4px 12px rgb(20 16 40 / 0.05);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:border-color .15s,color .15s}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .fp-icon-btn{box-shadow:0 6px 16px rgb(0 0 0 / 0.28)}
+}
+:root[data-theme="dark"] .fp-icon-btn{box-shadow:0 6px 16px rgb(0 0 0 / 0.28)}
+.fp-icon-btn:hover{border-color:color-mix(in oklab,var(--blue) 45%,var(--line));color:var(--blue)}
+
+/* ---------- 主工作区：左右分栏 ---------- */
+.workspace{display:grid;grid-template-columns:300px 1fr;flex:1;min-height:0}
+
+/* ---------- 头像与官方品牌图标 ---------- */
+.av-wrap{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center}
+.av-brand{display:grid;place-items:center;position:relative;overflow:hidden;border:1px solid var(--border);flex:none}
+.av-brand img{width:100%;height:100%;object-fit:cover;display:block}
+.av-held{position:absolute;right:-4px;bottom:-3px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.22));z-index:2;pointer-events:none}
+.av-held.big{right:-6px;bottom:-4px}
+
+/* ---------- 左栏：任务列表 + 模型额度 ---------- */
+.side{background:var(--background);border-right:1px solid var(--border);padding:16px 14px;display:flex;flex-direction:column;gap:14px;min-height:0}
+.sec{font-size:12px;font-weight:600;color:var(--muted-foreground);padding:0 4px;display:flex;justify-content:space-between;align-items:center}
+.sec a{color:var(--primary);text-decoration:none;cursor:pointer;font-weight:500;font-size:12px}
+.sec a:hover{text-decoration:underline;text-underline-offset:3px}
+
+.slist{display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:1;min-height:0}
+.slist::-webkit-scrollbar{width:0;height:0}
+.srow{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:var(--radius-card);cursor:pointer;
+  background:var(--card);border:1px solid var(--border);transition:background .15s,border-color .15s,box-shadow .15s}
+.srow:hover{border-color:color-mix(in oklab,var(--blue) 40%,var(--border))}
+.srow.on{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary);background:var(--card)}
+.srow .txt{flex:1;min-width:0}
+.srow .top{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.srow .t{font-size:13px;font-weight:650;color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .pct{font-size:12px;font-weight:650;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--primary)}
+.srow .pct.done{color:var(--success)}
+.srow .pct.need{color:var(--warning)}
+.srow .s{font-size:11.5px;color:var(--muted-foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.srow .s.need{color:var(--warning);font-weight:500}
+
+/* 复刻 http://localhost:5173/#/ .fp-bar / .node-meter 进度条 */
+.fp-bar{background:var(--track);border-radius:99px;height:6px;overflow:hidden;margin-top:8px}
+.fp-bar>i{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .35s var(--ease)}
+.fp-bar>i.done{background:var(--success)}
+.fp-bar>i.need,.fp-bar>i.warn{background:var(--warning)}
+.fp-bar>i.bad{background:var(--destructive)}
+
+/* 左栏底部额度列表 */
+.quota{display:flex;flex-direction:column;gap:7px;max-height:225px;overflow-y:auto}
+.quota::-webkit-scrollbar{width:0;height:0}
+.qrow{padding:8px 10px;border-radius:10px;background:var(--card);border:1px solid var(--border)}
+.qrow .ql{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-variant-numeric:tabular-nums}
+.qrow .qleft{display:flex;align-items:center;gap:6px;min-width:0}
+.qrow .name{font-weight:550;color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qrow .val{color:var(--muted-foreground);font-size:11.5px;font-family:var(--font-mono);flex:none}
+.qrow .val b{font-weight:650;color:var(--foreground)}
+.qrow .val b.warn{color:var(--warning)}
+.qrow .val b.bad{color:var(--destructive)}
+.qtip{font-size:11.5px;color:var(--promo);background:color-mix(in srgb,var(--promo) 10%,var(--card));
+  border:1px solid color-mix(in srgb,var(--promo) 28%,var(--border));padding:7px 10px;border-radius:var(--radius);line-height:1.4;font-weight:550}
+
+/* ---------- 右栏：详情视图 ---------- */
+.main{padding:22px 28px 26px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;min-height:0}
+.empty{margin:auto;text-align:center;color:var(--muted-foreground);font-size:13.5px;display:flex;flex-direction:column;align-items:center;gap:10px}
+
+/* 顶部标题区 */
+.head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.head h1{font-size:21px;font-weight:700;letter-spacing:-.02em;line-height:1.25;color:var(--foreground)}
+.head .meta{font-size:12.5px;color:var(--muted-foreground);margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tool-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px 2px 4px;border-radius:var(--radius-badge);
+  background:var(--secondary);color:var(--foreground);font-size:11.5px;font-weight:500}
+.proj-link{color:var(--primary);cursor:pointer;font-weight:500}
+.proj-link:hover{text-decoration:underline;text-underline-offset:3px}
+.head-actions{display:flex;align-items:center;gap:8px;flex:none}
+
+.btn{height:34px;padding:0 13px;border-radius:var(--radius);background:var(--card);color:var(--foreground);font-size:12.5px;
+  font-weight:500;cursor:pointer;white-space:nowrap;border:1px solid var(--border);display:inline-flex;align-items:center;gap:5px;
+  transition:background .15s,border-color .15s}
+.btn:hover{background:var(--accent)}
+.btn.primary{background:var(--primary);color:var(--primary-foreground);border-color:transparent}
+.btn.primary:hover{opacity:.92}
+.btn.warn{background:var(--warning);color:#111;border-color:transparent;font-weight:600}
+
+/* 复刻 lm.ikale.io .fp-cli-promo 信息条（显示当前步骤与进度） */
+.fp-cli-promo{border:1px solid var(--border);border-radius:var(--radius-card);background:var(--card);
+  padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.bp-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bp-left{display:flex;align-items:center;gap:8px;min-width:0}
+.bp-prompt{font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--primary)}
+.bp-label{font-size:13px;font-weight:600;color:var(--foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bp-pct{font-size:18px;font-weight:700;font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--primary)}
+.bp-pct.done{color:var(--success)}
+.bp-pct.need{color:var(--warning)}
+.plan-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.pstep{font-size:11.5px;padding:3px 8px;border-radius:var(--radius-badge);background:var(--secondary);
+  color:var(--muted-foreground);display:inline-flex;align-items:center;gap:5px}
+.pstep.done{color:var(--foreground)}
+.pstep.done i{color:var(--success);font-style:normal;font-weight:700}
+.pstep.cur{background:color-mix(in oklab,var(--primary) 10%,var(--card));color:var(--primary);font-weight:600;
+  border:1px solid color-mix(in oklab,var(--primary) 30%,var(--border))}
+.pstep.cur i{color:var(--primary);font-style:normal}
+
+/* 形象化工作舞台（复刻 lm.ikale.io .fp-card 留白风格） */
+.stage{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);padding:16px 18px;
+  display:flex;flex-direction:column;gap:14px}
+.stage.need{border-color:color-mix(in oklab,var(--warning) 60%,transparent);
+  background:color-mix(in oklab,var(--warning) 5%,var(--card))}
+.stage-arena{display:flex;align-items:center;gap:0;min-height:86px}
+.actor-node{display:flex;flex-direction:column;align-items:center;gap:6px;width:92px;flex:none}
+.actor-box{width:60px;height:60px;border-radius:14px;background:var(--background);border:1px solid var(--border);
+  display:grid;place-items:center;position:relative}
+.actor-tag{font-size:11px;font-weight:500;color:var(--muted-foreground);white-space:nowrap}
+
+.beam{flex:1;min-width:52px;max-width:128px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 6px}
+.beam-pill{font-size:11px;font-weight:500;color:var(--primary);
+  background:color-mix(in oklab,var(--primary) 8%,var(--card));
+  border:1px solid color-mix(in oklab,var(--primary) 25%,var(--border));
+  padding:2px 8px;border-radius:var(--radius-badge);margin-bottom:6px;white-space:nowrap}
+.beam-pill.need{color:var(--warning);border-color:color-mix(in oklab,var(--warning) 35%,var(--border));
+  background:color-mix(in oklab,var(--warning) 10%,var(--card))}
+.beam-pill.done{color:var(--success);border-color:color-mix(in oklab,var(--success) 35%,var(--border));
+  background:color-mix(in oklab,var(--success) 10%,var(--card))}
+.beam-svg{width:100%;height:12px;overflow:visible}
+@keyframes dashFlow{to{stroke-dashoffset:-24}}
+.beam-path{stroke:var(--border);stroke-width:1.75;stroke-dasharray:4 4}
+.beam-path.work{stroke:var(--primary);animation:dashFlow .9s linear infinite}
+.beam-path.done{stroke:var(--success);stroke-dasharray:none}
+.beam-path.need{stroke:var(--warning);stroke-dasharray:3 4}
+
+.target-node{flex:1.45;min-width:0;background:var(--background);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.target-title{font-size:14px;font-weight:600;color:var(--foreground);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.target-sub{font-size:12px;color:var(--muted-foreground);margin-top:3px;line-height:1.45}
+
+/* 复刻 lm.ikale.io .fp-cli-command 代码胶囊样式 */
+.obj{margin-top:8px;display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border-radius:var(--radius-badge);
+  background:color-mix(in oklab,var(--primary) 6%,var(--card));
+  border:1px solid color-mix(in oklab,var(--primary) 20%,var(--border));
+  max-width:100%;cursor:pointer;transition:background .15s}
+.obj:hover{background:color-mix(in oklab,var(--primary) 12%,var(--card))}
+.obj .p{font-family:var(--font-mono);font-size:12px;color:var(--primary);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.obj .dir{color:var(--muted-foreground);font-weight:400}
+.obj .st{font-family:var(--font-mono);font-size:11.5px;color:var(--success);font-weight:600;flex:none}
+
+.term{margin-top:8px;padding:8px 11px;border-radius:10px;
+  background:#0f141c;
+  border:1px solid #243040;
+  color:#d7e0ea;font-family:var(--font-mono);font-size:11.5px;line-height:1.5;
+  white-space:pre-wrap;word-break:break-all;max-height:76px;overflow:hidden}
+.term .pr{color:#6aa0ff;font-weight:700;margin-right:6px}
+
+.shot{margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);max-width:340px;cursor:pointer}
+.shot .bar{height:20px;background:var(--card);display:flex;align-items:center;gap:5px;padding:0 8px;font-size:10.5px;color:var(--muted-foreground)}
+.shot .bar i{width:6px;height:6px;border-radius:50%;background:var(--border);display:inline-block}
+.shot img{display:block;width:100%;max-height:145px;object-fit:cover;object-position:top}
+
+/* 关联文件胶囊栏 */
+.file-net{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding-top:11px;border-top:1px solid var(--border)}
+.file-net-label{font-size:11.5px;color:var(--muted-foreground);font-weight:500;margin-right:2px}
+.fnode{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--radius-badge);
+  background:var(--background);border:1px solid var(--border);font-size:11.5px;cursor:pointer;transition:border-color .15s,background .15s}
+.fnode:hover{border-color:var(--primary);background:color-mix(in oklab,var(--primary) 5%,var(--card))}
+.fnode .fn{font-family:var(--font-mono);font-size:11.5px;color:var(--foreground)}
+.fnode .fl{font-family:var(--font-mono);font-size:10.5px;color:var(--success);font-weight:600}
+
+/* 最近动作列表（复刻 lm.ikale.io 样本库表格分割线风格） */
+.tl-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-card);overflow:hidden}
+.tl-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);
+  font-size:12px;font-weight:600;color:var(--muted-foreground);background:color-mix(in oklab,var(--muted) 40%,var(--card))}
+.tl{display:flex;flex-direction:column}
+.trow{display:flex;align-items:center;gap:10px;padding:8.5px 16px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted-foreground)}
+.trow:first-child{border-top:0}
+.trow[data-open]{cursor:pointer}
+.trow[data-open]:hover{background:color-mix(in oklab,var(--muted) 50%,var(--card))}
+.trow .ic{width:18px;height:18px;display:grid;place-items:center;flex:none;color:var(--muted-foreground)}
+.trow .what{flex:none;color:var(--foreground);font-weight:500}
+.trow .detail{flex:1;min-width:0;font-family:var(--font-mono);font-size:11.5px;color:var(--muted-foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.trow .lines{flex:none;font-family:var(--font-mono);font-size:11.5px;color:var(--success);font-weight:600}
+.trow .t{flex:none;font-size:11.5px;font-family:var(--font-mono);color:var(--muted-foreground);font-variant-numeric:tabular-nums}
+
+/* ---------- 弹窗（复刻 lm.ikale.io 弹窗与切换器） ---------- */
+.modal-mask{position:fixed;inset:0;background:oklch(0% 0 0/.4);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  display:none;place-items:center;z-index:100}
+.modal-mask.on{display:grid}
+.modal{width:510px;max-width:92vw;background:var(--popover);color:var(--popover-foreground);border:1px solid var(--border);
+  border-radius:var(--radius-card);padding:20px 22px;box-shadow:var(--shadow-overlay);display:flex;flex-direction:column;gap:15px}
+.modal-hd{display:flex;align-items:center;justify-content:space-between}
+.modal-hd h2{font-size:15.5px;font-weight:600}
+.modal-close{width:28px;height:28px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);
+  display:grid;place-items:center;cursor:pointer;font-size:13px;color:var(--muted-foreground)}
+.modal-close:hover{background:var(--accent);color:var(--foreground)}
+.m-sec{display:flex;flex-direction:column;gap:8px}
+.m-sec-title{font-size:12px;font-weight:500;color:var(--muted-foreground)}
+.avatar-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.av-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius);background:var(--background);
+  border:1px solid var(--border);cursor:pointer;transition:border-color .15s,background .15s}
+.av-card:hover{border-color:color-mix(in oklab,var(--blue) 40%,var(--border))}
+.av-card.on{border-color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary);background:var(--card)}
+.av-card .av-t{font-size:12.5px;font-weight:600;color:var(--foreground)}
+.av-card .av-d{font-size:11px;color:var(--muted-foreground);margin-top:1px}
+.m-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--radius);
+  background:var(--background);border:1px solid var(--border)}
+.m-row .m-lbl{font-size:12.5px;font-weight:500;color:var(--foreground)}
+.m-row .m-sub{font-size:11px;color:var(--muted-foreground);margin-top:1px}
+
+/* 复刻 http://localhost:5173/#/ 胶囊切换按钮 */
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:999px;background:var(--background);padding:2px;gap:2px}
+.seg span{font-size:11.5px;font-weight:500;color:var(--muted-foreground);padding:4px 11px;cursor:pointer;
+  border-radius:999px;transition:background .15s,color .15s}
+.seg span.on{background:var(--card);color:var(--primary);font-weight:650;box-shadow:0 1px 4px rgb(0 0 0 / 0.08)}
+
+/* 战报分享弹窗 */
+.share-preview{border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--background);display:flex;justify-content:center}
+.share-preview canvas{width:100%;height:auto;display:block}
+.share-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.share-hint{font-size:12px;color:var(--muted-foreground)}
+.share-btns{display:flex;gap:8px}
+</style></head><body>
+<div class="fp-shell">
+  <!-- 顶部导航栏（1:1 参考 http://localhost:5173/#/ .chrome + .glass-rail + .chip-btn） -->
+  <header class="fp-topbar">
+    <div class="fp-brand">
+      <img class="fp-brand-mark" src="orbit-icon.png" alt="Orbit">
+      <div class="fp-brand-text">
+        <span class="fp-brand-title">Orbit</span>
+        <span class="fp-brand-byline">AI Coding Monitor</span>
+      </div>
+    </div>
+    <nav class="glass-rail">
+      <div class="glass-tab"><span>实时任务与额度监控</span><span class="fp-badge" id="navTaskBadge">0</span></div>
+    </nav>
+    <div class="fp-topbar-actions">
+      <button class="fp-star-btn" data-open-share="1" title="生成可分享的任务回放战报">
+        <svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01L12 2z"/></svg>
+        <span>生成战报</span>
+      </button>
+      <div class="fp-icon-btn" id="quickThemeBtn" title="切换浅色 / 深色 / 跟随系统">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+      </div>
+      <div class="fp-icon-btn" id="openSettings" title="偏好设置 (⌘,)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="side">
+      <div class="sec"><span id="sCount">任务列表</span></div>
+      <div class="slist" id="slist"></div>
+      <div class="sec"><span>模型额度</span><a id="refresh">刷新 ↻</a></div>
+      <div class="quota" id="quota"></div>
+    </aside>
+    <main class="main" id="main"></main>
+  </div>
+</div>
+
+<!-- 统一偏好设置弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<!-- 战报分享弹窗 -->
+<div class="modal-mask" id="shareMask">
+  <div class="modal" id="shareBox"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const post = m => { try { webkit.messageHandlers.app.postMessage(m); } catch (e) {} };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- 像素小人与各家官方品牌图标 ---------- */
+let bobTimers = [];
+function clawd(pose, box, moving, region = [-3, -2, 20]) {
+  const [x0, y0, u] = region, k = box / u, dpr = window.devicePixelRatio || 2;
+  const id = "c" + Math.random().toString(36).slice(2, 8);
+  setTimeout(() => {
+    const c = document.getElementById(id); if (!c) return;
+    const img = new Image();
+    img.onload = () => {
+      const ctx = c.getContext("2d"); ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, -(x0 + 15) * k * dpr, -(y0 + 25) * k * dpr, 45 * k * dpr, 45 * k * dpr);
+    };
+    img.src = `clawd/clawd-${pose}.svg`;
+    if (moving) { let up = false; bobTimers.push(setInterval(() => { up = !up; c.style.transform = up ? "translateY(-1.5px)" : ""; }, 350)); }
+  });
+  return `<canvas id="${id}" width="${box * dpr}" height="${box * dpr}" style="width:${box}px;height:${box}px;display:block;flex:none"></canvas>`;
+}
+function stopBob() { bobTimers.forEach(clearInterval); bobTimers = []; }
+
+const OFFICIAL_PATHS = {
+  claude: "M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z",
+  openai: "M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z",
+  grok: "M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764 1.022 2.487-.653 4.246-2.34 6.022-.599.63-1.199 1.259-1.682 1.925l7.62-6.815",
+  cursor: "M22.106 5.68L12.5.135a.998.998 0 00-.998 0L1.893 5.68a.84.84 0 00-.419.726v11.186c0 .3.16.577.42.727l9.607 5.547a.999.999 0 00.998 0l9.608-5.547a.84.84 0 00.42-.727V6.407a.84.84 0 00-.42-.726zm-.603 1.176L12.228 22.92c-.063.108-.228.064-.228-.061V12.34a.59.59 0 00-.295-.51l-9.11-5.26c-.107-.062-.063-.228.062-.228h18.55c.264 0 .428.286.296.514z",
+  copilot: "M19.245 5.364c1.322 1.36 1.877 3.216 2.11 5.817.622 0 1.2.135 1.592.654l.73.964c.21.278.323.61.323.955v2.62c0 .339-.173.669-.453.868C20.239 19.602 16.157 21.5 12 21.5c-4.6 0-9.205-2.583-11.547-4.258-.28-.2-.452-.53-.453-.868v-2.62c0-.345.113-.679.321-.956l.73-.963c.392-.517.974-.654 1.593-.654l.029-.297c.25-2.446.81-4.213 2.082-5.52 2.461-2.54 5.71-2.851 7.146-2.864h.198c1.436.013 4.685.323 7.146 2.864zm-7.244 4.328c-.284 0-.613.016-.962.05-.123.447-.305.85-.57 1.108-1.05 1.023-2.316 1.18-2.994 1.18-.638 0-1.306-.13-1.851-.464-.516.165-1.012.403-1.044.996a65.882 65.882 0 00-.063 2.884l-.002.48c-.002.563-.005 1.126-.013 1.69.002.326.204.63.51.765 2.482 1.102 4.83 1.657 6.99 1.657 2.156 0 4.504-.555 6.985-1.657a.854.854 0 00.51-.766c.03-1.682.006-3.372-.076-5.053-.031-.596-.528-.83-1.046-.996-.546.333-1.212.464-1.85.464-.677 0-1.942-.157-2.993-1.18-.266-.258-.447-.661-.57-1.108-.32-.032-.64-.049-.96-.05zm-2.525 4.013c.539 0 .976.426.976.95v1.753c0 .525-.437.95-.976.95a.964.964 0 01-.976-.95v-1.752c0-.525.437-.951.976-.951zm5 0c.539 0 .976.426.976.95v1.753c0 .525-.437.95-.976.95a.964.964 0 01-.976-.95v-1.752c0-.525.437-.951.976-.951zM7.635 5.087c-1.05.102-1.935.438-2.385.906-.975 1.037-.765 3.668-.21 4.224.405.394 1.17.657 1.995.657h.09c.649-.013 1.785-.176 2.73-1.11.435-.41.705-1.433.675-2.47-.03-.834-.27-1.52-.63-1.813-.39-.336-1.275-.482-2.265-.394zm6.465.394c-.36.292-.6.98-.63 1.813-.03 1.037.24 2.06.675 2.47.968.957 2.136 1.104 2.776 1.11h.044c.825 0 1.59-.263 1.995-.657.555-.556.765-3.187-.21-4.224-.45-.468-1.335-.804-2.385-.906-.99-.088-1.875.058-2.265.394zM12 7.615c-.24 0-.525.015-.84.044.03.16.045.336.06.526l-.001.159a2.94 2.94 0 01-.014.25c.225-.022.425-.027.612-.028h.366c.187 0 .387.006.612.028-.015-.146-.015-.277-.015-.409.015-.19.03-.365.06-.526a9.29 9.29 0 00-.84-.044z",
+};
+
+function brandSVG(kind, size = 30) {
+  const k = String(kind || "").toLowerCase();
+  const r = Math.round(size * 0.26);
+  const s = Math.round(size * 0.62);
+  if (k.includes("antigravity")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#fff">
+      <img src="icons/antigravity.png" alt="Antigravity"></div>`;
+  }
+  if (k.includes("codex") || k.includes("openai") || k.includes("gpt")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#10a37f">
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="${OFFICIAL_PATHS.openai}"/></svg></div>`;
+  }
+  if (k.includes("grok")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#141416">
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="${OFFICIAL_PATHS.grok}"/></svg></div>`;
+  }
+  if (k.includes("cursor")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#18181b">
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="${OFFICIAL_PATHS.cursor}"/></svg></div>`;
+  }
+  if (k.includes("copilot")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#2563eb">
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="${OFFICIAL_PATHS.copilot}"/></svg></div>`;
+  }
+  return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#d97757">
+    <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="nonzero"><path d="${OFFICIAL_PATHS.claude}"/></svg></div>`;
+}
+
+/* ---------- 折角文件图标 ---------- */
+const T = {
+  md: ["#eef0f4", "#cfd4de", "#4b5563", "M↓"], py: ["#7fb2f0", "#4f86d6", "#fff", "py"], swift: ["#ffab7a", "#f2703f", "#fff", "sw"],
+  js: ["#ffe27a", "#f5c430", "#5a4a10", "js"], ts: ["#8ab4ff", "#4c7fe8", "#fff", "ts"], html: ["#ff9c7f", "#ee6342", "#fff", "‹/›"],
+  css: ["#b9a4ff", "#8a6cf2", "#fff", "#"], json: ["#86dcb0", "#3fb07a", "#fff", "{ }"], img: ["#ffb3d1", "#ef7aa9", "#fff", "img"],
+  sh: ["#5b5b63", "#36363c", "#7ff0b5", ">_"], txt: ["#f4f4f6", "#d8d8de", "#8a8a92", "≡"],
+};
+const EXT = {md: "md", markdown: "md", py: "py", swift: "swift", js: "js", mjs: "js", cjs: "js", jsx: "js", ts: "ts", tsx: "ts",
+  html: "html", htm: "html", css: "css", scss: "css", json: "json", jsonl: "json", png: "img", jpg: "img", jpeg: "img", gif: "img",
+  webp: "img", svg: "img", sh: "sh", zsh: "sh", bash: "sh"};
+let iconSeq = 0;
+function fileIcon(ext, w = 22) {
+  const [a, b, fg, g] = T[EXT[ext] || "txt"], id = "fg" + (iconSeq++);
+  const fs = g.length >= 3 ? 11 : g.length === 2 ? 13 : 17;
+  const shape = "M12 2h15.5c1.6 0 3.1.6 4.2 1.8l8.5 8.5c1.2 1.1 1.8 2.6 1.8 4.2V38c0 5.5-4.5 10-10 10H12C6.5 48 2 43.5 2 38V12C2 6.5 6.5 2 12 2z";
+  return `<svg width="${w}" height="${w * 1.14}" viewBox="0 0 44 50" style="flex:none;display:block">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>
+    <path d="${shape}" fill="url(#${id})"/><path d="M28 2.4V10c0 2.8 2.2 5 5 5h7.6" fill="rgba(255,255,255,.45)"/>
+    <text x="21.5" y="35" text-anchor="middle" font-family="SF Pro Rounded,-apple-system" font-weight="800" font-size="${fs}" fill="${fg}">${esc(g)}</text></svg>`;
+}
+
+function sessionAvatar(s, size, moving, isBig = false) {
+  const style = settings.avatarStyle || "byTool";
+  const tool = String(s ? s.tool : "Claude").toLowerCase();
+  const held = s && s.now && (s.now.kind === "edit" || s.now.kind === "read") ? s.now.ext : null;
+  let core = "";
+  if (style === "clawd") core = clawd(s ? s.pose : "sleeping", size, moving);
+  else if (style === "codex") core = brandSVG("codex", size);
+  else if (style === "brand") core = brandSVG(tool, size);
+  else core = tool.includes("claude") ? clawd(s ? s.pose : "sleeping", size, moving) : brandSVG(tool, size);
+  const badgeSize = isBig ? 18 : 13;
+  const badge = held ? `<span class="av-held${isBig ? " big" : ""}">${fileIcon(held, badgeSize)}</span>` : "";
+  return `<div class="av-wrap">${core}${badge}</div>`;
+}
+
+const KIND_ICON = {
+  run: `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 4.5L7 8l-4 3.5M8.5 11.5H13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  browse: `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.4"/><path d="M2.8 8h10.4M8 2.5c1.6 1.8 1.6 9.2 0 11M8 2.5c-1.6 1.8-1.6 9.2 0 11" stroke="currentColor" stroke-width="1.2"/></svg>`,
+  search: `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.2" stroke="currentColor" stroke-width="1.5"/><path d="M10.3 10.3L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  web: `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.2" stroke="currentColor" stroke-width="1.5"/><path d="M10.3 10.3L13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  other: `<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>`,
+};
+
+/* ---------- 状态 ---------- */
+let data = {sessions: [], quota: []}, selected = null, shots = {};
+let settings = {autoHide: true, theme: "system", avatarStyle: "byTool", soundAlert: true, launchAtLogin: false};
+let modalOpen = false, shareOpen = false;
+
+function applyTheme() {
+  const th = settings.theme || "system";
+  if (th === "light" || th === "dark") {
+    document.documentElement.setAttribute("data-theme", th);
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+}
+
+function curSession() {
+  return data.sessions.find(s => s.id === selected) || data.sessions[0] || null;
+}
+
+function render() {
+  stopBob();
+  applyTheme();
+  const ss = data.sessions || [];
+  if (!ss.some(s => s.id === selected)) selected = ss[0]?.id || null;
+  const cur = curSession();
+
+  $("navTaskBadge").textContent = ss.length;
+  $("sCount").textContent = ss.length ? `任务列表 · ${ss.length}` : "任务列表";
+  $("slist").innerHTML = ss.length ? ss.map(s => {
+    const on = s.id === cur?.id ? " on" : "";
+    const pct = Math.max(0, Math.min(100, Math.round(s.pct ?? (s.phase === "done" ? 100 : 25))));
+    const phaseCls = s.phase === "done" ? "done" : s.phase === "need" ? "need" : "work";
+    return `<div class="srow${on}" data-sel="${esc(s.id)}">
+      ${sessionAvatar(s, 32, s.phase === "work", false)}
+      <div class="txt">
+        <div class="top">
+          <span class="t">${esc(s.title)}</span>
+          <span class="pct ${phaseCls}">${pct}%</span>
+        </div>
+        <div class="s${s.phase === "need" ? " need" : ""}">${esc(s.text)}</div>
+        <div class="fp-bar"><i class="${phaseCls}" style="width:${pct}%"></i></div>
+      </div>
+    </div>`;
+  }).join("") : `<div style="padding:12px 8px;font-size:12px;color:var(--muted-foreground)">当前没有正在运行的任务</div>`;
+
+  // 左栏底部额度 + 智能调度提示（lm.ikale.io 星标金色胶囊风格）
+  const qList = data.quota || [];
+  const highQuota = qList.find(q => (q.pct || 0) >= 80);
+  const tipHTML = highQuota
+    ? `<div class="qtip">★ ${esc(highQuota.name)} 已用 ${Math.round(highQuota.pct)}%，建议新任务切换其他模型</div>`
+    : "";
+  $("quota").innerHTML = tipHTML + qList.map(q => {
+    const pct = Math.max(0, Math.min(100, Math.round(q.pct || 0)));
+    const cls = pct >= 90 ? "bad" : pct >= 75 ? "warn" : "";
+    const note = q.note ? ` · ${esc(q.note)}` : "";
+    return `<div class="qrow">
+      <div class="ql">
+        <div class="qleft">${brandSVG(q.name, 15)}<span class="name">${esc(q.name)}</span></div>
+        <span class="val"><b class="${cls}">${pct}%</b>${note}</span>
+      </div>
+      <div class="fp-bar" style="margin-top:6px"><i class="${cls}" style="width:${pct}%"></i></div>
+    </div>`;
+  }).join("");
+
+  if (modalOpen) renderModal();
+  if (shareOpen && cur) renderShareModal(cur);
+
+  // 右栏详情
+  if (!cur) {
+    $("main").innerHTML = `<div class="empty">
+      ${clawd("sleeping", 56, false)}
+      <div>现在没有 AI 在干活，去 Claude Code、Codex、Antigravity 或 Cursor 派个任务吧</div>
+    </div>`;
+    return;
+  }
+  $("main").innerHTML = detailHTML(cur);
+}
+
+function detailHTML(s) {
+  const el = s.elapsed == null ? "" : s.elapsed < 1 ? "刚刚开始" : `已运行 ${s.elapsed} 分钟`;
+  const edits = s.edits ? `改动 ${s.edits} 个文件` : "";
+  const pct = Math.max(0, Math.min(100, Math.round(s.pct ?? (s.phase === "done" ? 100 : 25))));
+  const phaseCls = s.phase === "done" ? "done" : s.phase === "need" ? "need" : "work";
+  const btn = s.phase === "need"
+    ? `<button class="btn warn" data-jump="${esc(s.id)}">去回复 ↗</button>`
+    : `<button class="btn primary" data-jump="${esc(s.id)}">去会话 ↗</button>`;
+
+  const stepLabel = (s.plan && s.plan.length)
+    ? `第 ${s.step} / ${s.steps} 步 · ${esc(s.stepText || "")}`
+    : (s.phase === "done" ? "任务已完成" : s.phase === "need" ? "等待你的确认或回复" : "正在执行当前任务");
+
+  const planSteps = (s.plan && s.plan.length)
+    ? `<div class="plan-list">${s.plan.map((p, idx) => {
+        const st = p.status === "completed" ? "done" : idx + 1 === s.step ? "cur" : "";
+        const sym = p.status === "completed" ? "✓" : idx + 1 === s.step ? "●" : `${idx + 1}.`;
+        return `<span class="pstep ${st}"><i>${sym}</i>${esc(p.text)}</span>`;
+      }).join("")}</div>`
+    : "";
+
+  const prog = `<div class="fp-cli-promo">
+    <div class="bp-top">
+      <div class="bp-left">
+        <span class="bp-prompt">&gt;_</span>
+        <span class="bp-label">${stepLabel}</span>
+      </div>
+      <span class="bp-pct ${phaseCls}">${pct}%</span>
+    </div>
+    <div class="fp-bar" style="margin-top:0;height:6px"><i class="${phaseCls}" style="width:${pct}%"></i></div>
+    ${planSteps}
+  </div>`;
+
+  // 形象化工作舞台
+  const n = s.now;
+  let obj = "", sub = "", beamLabel = "执行中";
+  if (s.phase === "need") {
+    beamLabel = "等待回复";
+    sub = "在等你拍板，点右上角「去回复」直接跳过去";
+  } else if (s.phase === "done" || !n) {
+    beamLabel = "已完成";
+    sub = s.edits ? `本轮一共改动了 ${s.edits} 个文件` : "本轮未改动文件";
+  } else if (n.kind === "edit" || n.kind === "read") {
+    beamLabel = n.kind === "edit" ? "正在写入" : "正在读取";
+    const lines = n.lines ? `<span class="st">+${n.lines} 行</span>` : "";
+    const dir = n.dir ? `<span class="dir">${esc(n.dir)}/</span>` : "";
+    obj = `<div class="obj" data-open="${esc(n.path)}" data-sid="${esc(s.id)}">
+      ${fileIcon(n.ext, 20)}
+      <span class="p">${dir}${esc(n.name)}</span>
+      ${lines}
+    </div>`;
+  } else if (n.kind === "run") {
+    beamLabel = "终端执行";
+    if (n.cmd) obj = `<div class="term"><span class="pr">&gt;_</span>${esc(n.cmd)}</div>`;
+  } else if (n.kind === "browse") {
+    beamLabel = "浏览网页";
+    const shot = shots[s.id];
+    if (shot) {
+      obj = `<div class="shot" data-page="${esc(n.page || "")}">
+        <div class="bar"><i></i><i></i><i></i><span>${esc(n.page || "")}</span></div>
+        <img src="${shot}">
+      </div>`;
+    }
+  } else if (n.kind === "search" || n.kind === "web") {
+    beamLabel = n.kind === "web" ? "检索网页" : "检索代码";
+    if (n.detail) sub = n.detail;
+  }
+
+  const files = s.files || [];
+  const fileNet = files.length ? `<div class="file-net">
+    <span class="file-net-label">关联文件</span>
+    ${files.map(f => `<div class="fnode" data-open="${esc(f.path)}" data-sid="${esc(s.id)}">
+      ${fileIcon(f.ext, 14)}
+      <span class="fn">${esc(f.name)}</span>
+      ${f.lines ? `<span class="fl">+${f.lines}</span>` : ""}
+    </div>`).join("")}
+  </div>` : "";
+
+  const arrowColor = s.phase === "done" ? "var(--success)" : s.phase === "need" ? "var(--warning)" : "var(--primary)";
+  const stage = `<div class="stage${s.phase === "need" ? " need" : ""}">
+    <div class="stage-arena">
+      <div class="actor-node">
+        <div class="actor-box">${sessionAvatar(s, 42, s.phase === "work", true)}</div>
+        <span class="actor-tag">${esc(s.tool)}</span>
+      </div>
+      <div class="beam">
+        <span class="beam-pill ${phaseCls}">${beamLabel}</span>
+        <svg class="beam-svg" viewBox="0 0 120 12" preserveAspectRatio="none">
+          <line class="beam-path ${phaseCls}" x1="2" y1="6" x2="112" y2="6"/>
+          <polygon points="112,2.5 120,6 112,9.5" fill="${arrowColor}"/>
+        </svg>
+      </div>
+      <div class="target-node">
+        <div class="target-title">${esc(s.text)}</div>
+        ${sub ? `<div class="target-sub">${esc(sub)}</div>` : ""}
+        ${obj}
+      </div>
+    </div>
+    ${fileNet}
+  </div>`;
+
+  // 最近动作列表（复刻 lm.ikale.io 样本库清爽表格风格）
+  const tl = (s.timeline || []).slice().reverse();
+  const timeline = tl.length ? `<div class="tl-card">
+    <div class="tl-hd"><span>最近动作记录</span><span>共 ${tl.length} 条动作</span></div>
+    <div class="tl">${tl.map(e => {
+      const ic = (e.kind === "edit" || e.kind === "read") ? fileIcon(e.ext, 15) : (KIND_ICON[e.kind] || KIND_ICON.other);
+      const open = e.path ? ` data-open="${esc(e.path)}" data-sid="${esc(s.id)}"` : "";
+      const what = e.text || e.what || e.kind || "";
+      const detail = e.path && e.path !== e.name ? e.path : (e.short || e.host || e.detail || "");
+      const lines = e.lines ? `<span class="lines">+${e.lines}</span>` : "";
+      const timeStr = e.at || e.t || "";
+      return `<div class="trow"${open}>
+        <span class="ic">${ic}</span>
+        <span class="what">${esc(what)}</span>
+        <span class="detail">${esc(detail)}</span>
+        ${lines}
+        <span class="t">${esc(timeStr)}</span>
+      </div>`;
+    }).join("")}</div>
+  </div>` : "";
+
+  const metaParts = [el, edits].filter(Boolean).map(esc).join(" · ");
+
+  return `<div class="head">
+    <div>
+      <h1>${esc(s.title)}</h1>
+      <div class="meta">
+        <span class="tool-chip">${brandSVG(s.tool, 15)}${esc(s.tool)}</span>
+        ${s.project ? `<span class="proj-link" data-open-project="${esc(s.id)}" title="在 Finder 中打开项目文件夹">${esc(s.project)} ↗</span>` : ""}
+        ${metaParts ? `<span>${metaParts}</span>` : ""}
+      </div>
+    </div>
+    <div class="head-actions">
+      ${btn}
+    </div>
+  </div>
+  ${prog}
+  ${stage}
+  ${timeline}`;
+}
+
+/* ---------- 统一偏好设置弹窗 ---------- */
+function renderModal() {
+  const av = settings.avatarStyle || "byTool";
+  const th = settings.theme || "system";
+  $("modalBox").innerHTML = `
+    <div class="modal-hd">
+      <h2>Orbit 偏好设置</h2>
+      <div class="modal-close" data-close-modal="1">✕</div>
+    </div>
+    <div class="m-sec">
+      <div class="m-sec-title">角色与官方图标风格（刘海与主窗口同步生效）</div>
+      <div class="avatar-grid">
+        <div class="av-card ${av === "byTool" ? "on" : ""}" data-avatar="byTool">
+          ${clawd("working-typing", 32, false)}
+          <div><div class="av-t">Claude 小人 + 官方图标</div><div class="av-d">Claude 用小人，其他用官方图标</div></div>
+        </div>
+        <div class="av-card ${av === "brand" ? "on" : ""}" data-avatar="brand">
+          ${brandSVG("claude", 32)}
+          <div><div class="av-t">全部使用官方品牌图标</div><div class="av-d">Claude / OpenAI / Grok / 反重力</div></div>
+        </div>
+        <div class="av-card ${av === "codex" ? "on" : ""}" data-avatar="codex">
+          ${brandSVG("codex", 32)}
+          <div><div class="av-t">统一 OpenAI 官方图标</div><div class="av-d">所有任务统一显示 OpenAI 图标</div></div>
+        </div>
+        <div class="av-card ${av === "clawd" ? "on" : ""}" data-avatar="clawd">
+          ${clawd("happy", 32, false)}
+          <div><div class="av-t">全部使用像素小人</div><div class="av-d">所有模型都用动态像素小人</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="m-sec">
+      <div class="m-sec-title">外观与显示</div>
+      <div class="m-row">
+        <div><div class="m-lbl">界面外观主题</div><div class="m-sub">深色模式与浅色模式全局统一</div></div>
+        <div class="seg">
+          <span class="${th === "system" ? "on" : ""}" data-theme="system">跟随系统</span>
+          <span class="${th === "light" ? "on" : ""}" data-theme="light">浅色</span>
+          <span class="${th === "dark" ? "on" : ""}" data-theme="dark">深色</span>
+        </div>
+      </div>
+      <div class="m-row">
+        <div><div class="m-lbl">顶部刘海默认状态</div><div class="m-sub">启动或新事件 5 秒后自动隐藏，完成或等你时弹出</div></div>
+        <div class="seg">
+          <span class="${settings.autoHide ? "on" : ""}" data-autohide="1">5秒自动收缩</span>
+          <span class="${!settings.autoHide ? "on" : ""}" data-autohide="0">一直常驻</span>
+        </div>
+      </div>
+      <div class="m-row">
+        <div><div class="m-lbl">任务完成与等待提示音</div><div class="m-sub">Agent 完成任务或需要你确认时播放轻提示音</div></div>
+        <div class="seg">
+          <span class="${settings.soundAlert ? "on" : ""}" data-sound="1">开启</span>
+          <span class="${!settings.soundAlert ? "on" : ""}" data-sound="0">静音</span>
+        </div>
+      </div>
+      <div class="m-row">
+        <div><div class="m-lbl">开机自动启动</div><div class="m-sub">登录 macOS 时在后台静默启动 Orbit</div></div>
+        <div class="seg">
+          <span class="${settings.launchAtLogin ? "on" : ""}" data-login="1">开启</span>
+          <span class="${!settings.launchAtLogin ? "on" : ""}" data-login="0">关闭</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- 战报分享卡弹窗（复刻 lm.ikale.io 极简学术工程风卡片） ---------- */
+function renderShareModal(s) {
+  $("shareBox").innerHTML = `
+    <div class="modal-hd">
+      <h2>任务回放战报</h2>
+      <div class="modal-close" data-close-share="1">✕</div>
+    </div>
+    <div class="share-preview"><canvas id="shareCanvas" width="920" height="500"></canvas></div>
+    <div class="share-actions">
+      <span class="share-hint" id="shareStatus">高清 Retina 战报卡，可直接复制粘贴到飞书 / 微信 / X</span>
+      <div class="share-btns">
+        <button class="btn" id="btnSaveShare">保存 PNG 到桌面</button>
+        <button class="btn primary" id="btnCopyShare">复制战报图片</button>
+      </div>
+    </div>
+  `;
+  drawShareCard(s);
+}
+
+function drawShareCard(s) {
+  const c = $("shareCanvas"); if (!c) return;
+  const ctx = c.getContext("2d");
+  const W = c.width, H = c.height;
+
+  // http://localhost:5173/#/ 风格纯净浅色画布 + 1px 边框卡片
+  ctx.fillStyle = "#f7f7f7";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.strokeStyle = "#e2e4e8";
+  ctx.lineWidth = 2;
+  roundRect(ctx, 28, 28, W - 56, H - 56, 20);
+  ctx.fill();
+  ctx.stroke();
+
+  // 顶部品牌与状态
+  ctx.fillStyle = "#18181b";
+  ctx.font = "650 22px -apple-system, 'SF Pro Text', 'PingFang SC', sans-serif";
+  ctx.fillText("Orbit · 任务回放战报", 64, 80);
+
+  const pct = Math.max(0, Math.min(100, Math.round(s.pct ?? 100)));
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#2563eb";
+  ctx.font = "700 32px 'SF Mono', Menlo, monospace";
+  ctx.fillText(`${pct}%`, W - 64, 82);
+  ctx.textAlign = "left";
+
+  // 任务主标题
+  ctx.fillStyle = "#18181b";
+  ctx.font = "700 32px -apple-system, 'PingFang SC', sans-serif";
+  ctx.fillText((s.title || "AI 编码任务").slice(0, 24), 64, 140);
+
+  // 当前状态
+  ctx.fillStyle = "#646870";
+  ctx.font = "500 20px -apple-system, 'PingFang SC', sans-serif";
+  ctx.fillText((s.text || "已完成本轮任务").slice(0, 38), 64, 176);
+
+  // http://localhost:5173/#/ .node-meter 风格干净进度条
+  ctx.fillStyle = "#e4eaf2";
+  roundRect(ctx, 64, 200, W - 128, 10, 5); ctx.fill();
+  ctx.fillStyle = "#2563eb";
+  roundRect(ctx, 64, 200, Math.max(20, (W - 128) * (pct / 100)), 10, 5); ctx.fill();
+
+  // 4 个关键指标框
+  const stats = [
+    {k: "协作模型", v: s.tool || "Claude"},
+    {k: "所属项目", v: s.project || "当前工作区"},
+    {k: "改动文件", v: `${s.edits || (s.files ? s.files.length : 0)} 个文件`},
+    {k: "任务耗时", v: s.elapsed ? `${s.elapsed} 分钟` : "刚刚完成"},
+  ];
+  const cw = (W - 128 - 36) / 4;
+  stats.forEach((st, i) => {
+    const x = 64 + i * (cw + 12), y = 234;
+    ctx.fillStyle = "#f5f8fc";
+    ctx.strokeStyle = "#e2e4e8";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, x, y, cw, 92, 12); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#646870";
+    ctx.font = "500 15px -apple-system, 'PingFang SC', sans-serif";
+    ctx.fillText(st.k, x + 16, y + 32);
+    ctx.fillStyle = "#18181b";
+    ctx.font = "700 21px -apple-system, 'PingFang SC', sans-serif";
+    ctx.fillText(String(st.v).slice(0, 11), x + 16, y + 68);
+  });
+
+  // 核心改动文件胶囊（lm.ikale.io 淡蓝代码胶囊风格）
+  const files = (s.files || []).slice(0, 4);
+  ctx.fillStyle = "#6b6b6b";
+  ctx.font = "600 15px -apple-system, 'PingFang SC', sans-serif";
+  ctx.fillText("核心改动文件", 64, 362);
+  let fx = 64;
+  if (files.length) {
+    files.forEach(f => {
+      const label = f.lines ? `${f.name} +${f.lines}` : f.name;
+      ctx.font = "500 16px 'SF Mono', Menlo, monospace";
+      const tw = ctx.measureText(label).width + 26;
+      if (fx + tw > W - 64) return;
+      ctx.fillStyle = "#eff6ff";
+      ctx.strokeStyle = "#bfdbfe";
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, fx, 376, tw, 38, 8); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#1d4ed8";
+      ctx.fillText(label, fx + 13, 401);
+      fx += tw + 10;
+    });
+  } else {
+    ctx.fillStyle = "#8e8e98";
+    ctx.font = "500 16px -apple-system, 'PingFang SC', sans-serif";
+    ctx.fillText("本轮主要为代码分析与终端验证", 64, 401);
+  }
+
+  ctx.fillStyle = "#8e8e98";
+  ctx.font = "400 14px -apple-system, 'PingFang SC', sans-serif";
+  ctx.fillText("Orbit for macOS · 实时任务与全模型额度监控", 64, H - 46);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+window.app = {
+  update(p) {
+    data = p || {sessions: [], quota: []};
+    if (p && p.settings) settings = {...settings, ...p.settings};
+    render();
+  },
+  select(id) { selected = id; render(); },
+  shot(id, key, url) { shots[id] = url; if (id === selected) render(); },
+  setFullscreen(on) { document.body.classList.toggle("fullscreen", !!on); },
+};
+
+document.addEventListener("click", e => {
+  if (e.target.closest("#refresh")) { post({type: "refresh"}); return; }
+  if (e.target.closest("#quickThemeBtn")) {
+    const order = ["system", "light", "dark"];
+    const curTh = settings.theme || "system";
+    settings.theme = order[(order.indexOf(curTh) + 1) % order.length];
+    post({type: "setting", key: "theme", value: settings.theme});
+    render();
+    return;
+  }
+  if (e.target.closest("#openSettings")) {
+    modalOpen = true;
+    $("modalMask").classList.add("on");
+    renderModal();
+    return;
+  }
+  if (e.target.closest("[data-close-modal]") || e.target === $("modalMask")) {
+    modalOpen = false;
+    $("modalMask").classList.remove("on");
+    return;
+  }
+  if (e.target.closest("[data-open-share]")) {
+    const cur = curSession();
+    if (cur) {
+      shareOpen = true;
+      $("shareMask").classList.add("on");
+      renderShareModal(cur);
+    }
+    return;
+  }
+  if (e.target.closest("[data-close-share]") || e.target === $("shareMask")) {
+    shareOpen = false;
+    $("shareMask").classList.remove("on");
+    return;
+  }
+  if (e.target.closest("#btnCopyShare")) {
+    const c = $("shareCanvas");
+    if (c) {
+      post({type: "copyImage", data: c.toDataURL("image/png")});
+      const st = $("shareStatus");
+      if (st) { st.textContent = "✓ 已复制到剪贴板，可直接粘贴分享"; st.style.color = "var(--success)"; }
+    }
+    return;
+  }
+  if (e.target.closest("#btnSaveShare")) {
+    const c = $("shareCanvas");
+    if (c) {
+      post({type: "saveImage", data: c.toDataURL("image/png")});
+      const st = $("shareStatus");
+      if (st) { st.textContent = "✓ 已保存 PNG 到桌面并在 Finder 中高亮"; st.style.color = "var(--success)"; }
+    }
+    return;
+  }
+  const proj = e.target.closest("[data-open-project]");
+  if (proj) { post({type: "openProject", id: proj.dataset.openProject}); return; }
+  const th = e.target.closest("[data-theme]");
+  if (th) {
+    settings.theme = th.dataset.theme;
+    post({type: "setting", key: "theme", value: settings.theme});
+    render();
+    return;
+  }
+  const av = e.target.closest("[data-avatar]");
+  if (av) {
+    settings.avatarStyle = av.dataset.avatar;
+    post({type: "setting", key: "avatarStyle", value: settings.avatarStyle});
+    render();
+    return;
+  }
+  const ah = e.target.closest("[data-autohide]");
+  if (ah) {
+    settings.autoHide = ah.dataset.autohide === "1";
+    post({type: "setting", key: "autoHide", value: settings.autoHide});
+    render();
+    return;
+  }
+  const snd = e.target.closest("[data-sound]");
+  if (snd) {
+    settings.soundAlert = snd.dataset.sound === "1";
+    post({type: "setting", key: "soundAlert", value: settings.soundAlert});
+    render();
+    return;
+  }
+  const lg = e.target.closest("[data-login]");
+  if (lg) {
+    settings.launchAtLogin = lg.dataset.login === "1";
+    post({type: "setting", key: "launchAtLogin", value: settings.launchAtLogin});
+    render();
+    return;
+  }
+  const sel = e.target.closest("[data-sel]");
+  if (sel) { selected = sel.dataset.sel; post({type: "select", id: selected}); render(); return; }
+  const j = e.target.closest("[data-jump]");
+  if (j) { post({type: "jump", id: j.dataset.jump}); return; }
+  const o = e.target.closest("[data-open]");
+  if (o) { post({type: "open", id: o.dataset.sid, path: o.dataset.open}); return; }
+  const p = e.target.closest("[data-page]");
+  if (p && p.dataset.page) { post({type: "page", url: p.dataset.page}); return; }
+});
+
+document.addEventListener("keydown", e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === ",") {
+    e.preventDefault();
+    modalOpen = !modalOpen;
+    $("modalMask").classList.toggle("on", modalOpen);
+    if (modalOpen) renderModal();
+    return;
+  }
+  if (e.key === "Escape") {
+    if (modalOpen) { modalOpen = false; $("modalMask").classList.remove("on"); }
+    if (shareOpen) { shareOpen = false; $("shareMask").classList.remove("on"); }
+    return;
+  }
+  if (!modalOpen && !shareOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+    const ss = data.sessions || [];
+    if (!ss.length) return;
+    e.preventDefault();
+    const idx = ss.findIndex(s => s.id === selected);
+    const nextIdx = e.key === "ArrowDown" ? Math.min(ss.length - 1, idx + 1) : Math.max(0, idx - 1);
+    selected = ss[nextIdx].id;
+    post({type: "select", id: selected});
+    render();
+  }
+});
+</script></body></html>

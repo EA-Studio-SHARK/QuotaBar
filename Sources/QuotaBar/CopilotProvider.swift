@@ -114,26 +114,17 @@ enum CopilotProvider {
     }
 
     private static func readToken() throws -> String {
-        if let t = readGitHubInternetPassword() { return t }
         if let t = readAppsJSON() { return t }
         if let t = readHostsJSON() { return t }
         if let t = readGHConfig() { return t }
+        if let t = readGitHubInternetPassword() { return t }
         throw QuotaError.missingCredentials("未找到 GitHub / Copilot 登录态（需要 gh 登录或 Copilot 插件）")
     }
 
     private static func readGitHubInternetPassword() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-        process.arguments = ["find-internet-password", "-s", "github.com", "-w"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
         do {
-            try process.run()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            let raw = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let data = try LocalProcess.output("/usr/bin/security", ["find-internet-password", "-s", "github.com", "-w"])
+            let raw = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let raw, raw.count >= 20 else { return nil }
             return raw
         } catch {

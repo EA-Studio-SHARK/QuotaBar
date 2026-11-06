@@ -9,7 +9,8 @@ enum HTTP {
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = "GET"
         for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        let (data, response) = try await send(request)
         guard let http = response as? HTTPURLResponse else {
             throw QuotaError.other("无效响应")
         }
@@ -26,7 +27,8 @@ enum HTTP {
         request.httpMethod = "POST"
         request.httpBody = body
         for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
-        let (data, response) = try await URLSession.shared.data(for: request)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        let (data, response) = try await send(request)
         guard let http = response as? HTTPURLResponse else {
             throw QuotaError.other("无效响应")
         }
@@ -39,6 +41,14 @@ enum HTTP {
             throw QuotaError.http(http.statusCode, String(body.prefix(200)))
         }
         return data
+    }
+
+    private static func send(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        do { return try await URLSession.shared.data(for: request) }
+        catch let error as URLError where error.code == .networkConnectionLost {
+            // These requests only read usage; retry once if a reused connection dropped.
+            return try await URLSession.shared.data(for: request)
+        }
     }
 }
 

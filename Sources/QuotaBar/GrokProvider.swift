@@ -23,14 +23,51 @@ enum GrokProvider {
         let subscriptions: [Sub]?
     }
 
+    struct BillingResponse: Decodable {
+        struct Config: Decodable {
+            struct Period: Decodable {
+                let type: String?
+                let start: String?
+                let end: String?
+            }
+            struct ProductUsage: Decodable {
+                let product: String?
+                let usagePercent: Double?
+            }
+            let currentPeriod: Period?
+            let billingPeriodEnd: String?
+            let creditUsagePercent: Double?
+            let productUsage: [ProductUsage]?
+        }
+        let config: Config?
+    }
+
     static func fetch() async -> ProviderUsage {
         do {
             var metrics: [UsageMetric] = []
             var primary: Double?
+            var usageError: String?
 
-            // Prefer Chrome SSO for live rate-limit / consumer usage
-            if let cookie = try? readChromeSSOCookieHeader() {
-                if let sub = try? await fetchSubscriptionsWithCookie(cookie: cookie),
+            // 1. Prefer Grok Build local OAuth (~/.grok/auth.json)
+            if let oauth = try? readOAuthEntry() {
+                do {
+                    let billing = try await fetchBillingWithOAuth(token: oauth.key)
+                    if let cfg = billing.config, let pct = cfg.creditUsagePercent {
+                        primary = pct
+                        let end = ISO8601.parse(cfg.currentPeriod?.end ?? cfg.billingPeriodEnd)
+                        let isWeekly = (cfg.currentPeriod?.type ?? "").uppercased().contains("WEEK")
+                        metrics.append(UsageMetric(
+                            label: isWeekly ? "周限额" : "本周期",
+                            percent: pct,
+                            detail: Formatters.countdown(to: end),
+                            resetsAt: end
+                        ))
+                    }
+                } catch {
+                    usageError = error.localizedDescription
+                }
+
+                if let sub = try? await fetchSubscriptions(token: oauth.key),
                    let first = sub.subscriptions?.first {
                     let tier = friendlyTier(first.tier)
                     let end = ISO8601.parse(first.billingPeriodEnd)
@@ -42,39 +79,48 @@ enum GrokProvider {
                         resetsAt: end
                     ))
                 }
-
-                if let fast = try? await fetchRateLimit(cookie: cookie, model: "fast") {
-                    primary = fast.percent
-                    metrics.insert(UsageMetric(
-                        label: "Fast",
-                        percent: fast.percent,
-                        detail: fast.detail,
-                        resetsAt: nil
-                    ), at: 0)
-                }
-                if let expert = try? await fetchRateLimit(cookie: cookie, model: "expert") {
-                    metrics.append(UsageMetric(
-                        label: "Expert",
-                        percent: expert.percent,
-                        detail: expert.detail,
-                        resetsAt: nil
-                    ))
-                    if primary == nil { primary = expert.percent }
-                }
             }
 
-            // Fallback: Grok Build OAuth subscriptions only
-            if metrics.isEmpty, let oauth = try? readOAuthEntry() {
-                if let sub = try? await fetchSubscriptions(token: oauth.key),
-                   let first = sub.subscriptions?.first {
-                    let tier = friendlyTier(first.tier)
-                    let end = ISO8601.parse(first.billingPeriodEnd)
-                    metrics.append(UsageMetric(
-                        label: "订阅",
-                        percent: nil,
-                        detail: "\(tier) · 至 \(Formatters.relativeDate(end))",
-                        resetsAt: end
-                    ))
+            // 2. Fallback: Chrome SSO for consumer rate-limits if OAuth has no quota
+            if primary == nil {
+                do {
+                    let cookie = try readChromeSSOCookieHeader()
+                    if metrics.isEmpty,
+                       let sub = try? await fetchSubscriptionsWithCookie(cookie: cookie),
+                       let first = sub.subscriptions?.first {
+                        let tier = friendlyTier(first.tier)
+                        let end = ISO8601.parse(first.billingPeriodEnd)
+                        metrics.append(UsageMetric(
+                            label: "订阅",
+                            percent: nil,
+                            detail: "\(tier) · 至 \(Formatters.relativeDate(end))"
+                                + ((first.cancelAtPeriodEnd == true) ? "（期末取消）" : ""),
+                            resetsAt: end
+                        ))
+                    }
+
+                    do {
+                        let fast = try await fetchRateLimit(cookie: cookie, model: "fast")
+                        primary = fast.percent
+                        metrics.insert(UsageMetric(
+                            label: "Fast",
+                            percent: fast.percent,
+                            detail: fast.detail,
+                            resetsAt: nil
+                        ), at: 0)
+                    } catch { usageError = error.localizedDescription }
+                    do {
+                        let expert = try await fetchRateLimit(cookie: cookie, model: "expert")
+                        metrics.append(UsageMetric(
+                            label: "Expert",
+                            percent: expert.percent,
+                            detail: expert.detail,
+                            resetsAt: nil
+                        ))
+                        primary = max(primary ?? expert.percent, expert.percent)
+                    } catch { usageError = error.localizedDescription }
+                } catch {
+                    if usageError == nil { usageError = error.localizedDescription }
                 }
             }
 
@@ -87,12 +133,12 @@ enum GrokProvider {
                     status: .ok,
                     primaryPercent: nil,
                     metrics: metrics,
-                    errorMessage: "已拿到订阅信息；窗口用量需 Chrome 登录 grok.com",
+                    errorMessage: usageError.map { "额度查询失败：\($0)" },
                     updatedAt: Date()
                 )
             }
 
-            throw QuotaError.missingCredentials("未找到 Grok 登录态。请在 Chrome 登录 grok.com，或运行 grok login")
+            throw QuotaError.missingCredentials(usageError ?? "未找到 Grok 登录态。请运行 grok login 或在 Chrome 登录 grok.com")
         } catch {
             return .unavailable(.grok, message: error.localizedDescription)
         }
@@ -135,6 +181,18 @@ enum GrokProvider {
         return entry
     }
 
+    private static func fetchBillingWithOAuth(token: String) async throws -> BillingResponse {
+        let url = URL(string: "https://cli-chat-proxy.grok.com/v1/billing?format=credits")!
+        let (data, http) = try await HTTP.get(url: url, headers: [
+            "Authorization": "Bearer \(token)",
+            "Accept": "application/json",
+            "x-grok-client-version": "1.0.70",
+            "User-Agent": "grok-shell/1.0.70",
+        ])
+        _ = try HTTP.requireOK(data, http)
+        return try JSONDecoder().decode(BillingResponse.self, from: data)
+    }
+
     private static func fetchSubscriptions(token: String) async throws -> SubscriptionsResponse {
         let url = URL(string: "https://grok.com/rest/subscriptions")!
         let (data, http) = try await HTTP.get(url: url, headers: [
@@ -149,28 +207,32 @@ enum GrokProvider {
     // MARK: - Chrome SSO
 
     private static func readChromeSSOCookieHeader() throws -> String {
-        let profiles = [
-            "Default",
-            "Profile 1",
-            "Profile 2",
-        ]
         let base = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/Google/Chrome")
-
+        let profiles = ((try? FileManager.default.contentsOfDirectory(atPath: base.path)) ?? [])
+            .filter { $0 == "Default" || $0.hasPrefix("Profile ") }.sorted()
         var sso: String?
         var ssoRw: String?
-
+        var readError: Error?
         for profile in profiles {
-            let dbPath = base.appendingPathComponent(profile).appendingPathComponent("Cookies").path
-            guard FileManager.default.fileExists(atPath: dbPath) else { continue }
-            let pairs = (try? decryptChromeCookies(dbPath: dbPath)) ?? [:]
-            if sso == nil { sso = pairs["sso"] }
-            if ssoRw == nil { ssoRw = pairs["sso-rw"] }
+            for relative in ["Cookies", "Network/Cookies"] {
+                let dbPath = base.appendingPathComponent(profile).appendingPathComponent(relative).path
+                guard FileManager.default.fileExists(atPath: dbPath) else { continue }
+                let pairs: [String: String]
+                do { pairs = try decryptChromeCookies(dbPath: dbPath) }
+                catch { readError = error; continue }
+                if let candidate = pairs["sso"], !candidate.isEmpty {
+                    sso = candidate
+                    ssoRw = pairs["sso-rw"]
+                    break
+                }
+            }
             if sso != nil { break }
         }
 
         guard let sso else {
-            throw QuotaError.missingCredentials("Chrome 中无 grok.com SSO cookie")
+            if let readError { throw readError }
+            throw QuotaError.missingCredentials("后台未能读取 Chrome 的 Grok 登录态，请检查登录状态和访问权限")
         }
         var parts = ["sso=\(sso)"]
         if let ssoRw { parts.append("sso-rw=\(ssoRw)") }
@@ -178,19 +240,24 @@ enum GrokProvider {
     }
 
     private static func decryptChromeCookies(dbPath: String) throws -> [String: String] {
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("quotabar-cookies-\(UUID().uuidString)")
-        try FileManager.default.copyItem(atPath: dbPath, toPath: tmp.path)
-        defer { try? FileManager.default.removeItem(at: tmp) }
-
         var db: OpaquePointer?
         defer { if db != nil { sqlite3_close(db) } }
-        guard sqlite3_open_v2(tmp.path, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
+        guard sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
             throw QuotaError.other("无法打开 Chrome Cookies")
         }
+        sqlite3_busy_timeout(db, 500)
+        var versionStatement: OpaquePointer?
+        var version = 0
+        if sqlite3_prepare_v2(db, "SELECT value FROM meta WHERE key = 'version'", -1, &versionStatement, nil) == SQLITE_OK,
+           sqlite3_step(versionStatement) == SQLITE_ROW {
+            version = Int(sqlite3_column_int(versionStatement, 0))
+        }
+        sqlite3_finalize(versionStatement)
 
         let sql = """
-        SELECT name, encrypted_value FROM cookies
-        WHERE host_key = '.grok.com' AND name IN ('sso', 'sso-rw');
+        SELECT name, encrypted_value, host_key, value FROM cookies
+        WHERE host_key IN ('.grok.com', 'grok.com') AND name IN ('sso', 'sso-rw')
+          AND (expires_utc = 0 OR expires_utc > (strftime('%s','now') + 11644473600) * 1000000);
         """
         var stmt: OpaquePointer?
         defer { if stmt != nil { sqlite3_finalize(stmt) } }
@@ -202,10 +269,15 @@ enum GrokProvider {
         var result: [String: String] = [:]
         while sqlite3_step(stmt) == SQLITE_ROW {
             let name = String(cString: sqlite3_column_text(stmt, 0))
+            if let value = sqlite3_column_text(stmt, 3) {
+                let plain = String(cString: value)
+                if !plain.isEmpty { result[name] = plain; continue }
+            }
+            let host = String(cString: sqlite3_column_text(stmt, 2))
             let blobLen = Int(sqlite3_column_bytes(stmt, 1))
             guard blobLen > 3, let bytes = sqlite3_column_blob(stmt, 1) else { continue }
             let data = Data(bytes: bytes, count: blobLen)
-            if let plain = decryptChromeValue(data, key: key) {
+            if let plain = decryptChromeValue(data, key: key, host: host, version: version) {
                 result[name] = plain
             }
         }
@@ -213,19 +285,9 @@ enum GrokProvider {
     }
 
     private static func chromeSafeStorageKey() throws -> Data {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-        process.arguments = ["find-generic-password", "-w", "-s", "Chrome Safe Storage", "-a", "Chrome"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0,
-              let pw = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        else {
-            throw QuotaError.other("无法读取 Chrome Safe Storage（首次可能需允许钥匙串访问）")
+        let data = try LocalProcess.output("/usr/bin/security", ["find-generic-password", "-w", "-s", "Chrome Safe Storage", "-a", "Chrome"])
+        guard let pw = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) else {
+            throw QuotaError.other("无法读取 Chrome Safe Storage")
         }
 
         // PBKDF2-SHA1, salt "saltysalt", 1003 iterations, 16 bytes
@@ -253,7 +315,7 @@ enum GrokProvider {
         return derived
     }
 
-    private static func decryptChromeValue(_ encrypted: Data, key: Data) -> String? {
+    static func decryptChromeValue(_ encrypted: Data, key: Data, host: String, version: Int) -> String? {
         guard encrypted.count > 3 else { return nil }
         let prefix = String(data: encrypted.prefix(3), encoding: .utf8) ?? ""
         guard prefix == "v10" || prefix == "v11" else { return nil }
@@ -284,16 +346,21 @@ enum GrokProvider {
         guard status == 0 else { return nil }
         out.count = outLength
 
-        // Newer Chrome may prepend a hash; extract JWT if present
-        if let idx = out.range(of: Data("eyJ".utf8)) {
-            let jwtData = out[idx.lowerBound...]
-            if let s = String(data: jwtData, encoding: .utf8) {
-                let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_=")
-                let cleaned = String(s.unicodeScalars.prefix(while: { allowed.contains($0) }))
-                if cleaned.count > 20 { return cleaned }
-            }
+        return cookieString(out, host: host, version: version)
+    }
+
+    static func cookieString(_ decrypted: Data, host: String, version: Int) -> String? {
+        var value = decrypted
+        if version >= 24 {
+            let hostData = Data(host.utf8)
+            var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+            _ = hostData.withUnsafeBytes { CC_SHA256($0.baseAddress, CC_LONG(hostData.count), &hash) }
+            guard value.starts(with: hash) else { return nil }
+            value = Data(value.dropFirst(hash.count))
         }
-        return String(data: out, encoding: .utf8)
+        guard let text = String(data: value, encoding: .utf8), !text.isEmpty,
+              !text.contains("\n"), !text.contains("\r") else { return nil }
+        return text
     }
 
     private struct UsageHit {

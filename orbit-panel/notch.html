@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<style>
+:root{
+  --bg:#0b0d10;
+  --card:#1c1e22;
+  --subtle:#1a1f27;
+  --track:#243040;
+  --border:#2a2e34;
+  --w1:#f1f3f6;
+  --w2:#9aa1ab;
+  --w3:#6b7480;
+  --primary:oklch(0.72 0.15 255);
+  --ok:#34d399;
+  --warn:#f0b429;
+  --bad:#e05a5a;
+  --sans:"SF Pro Text","PingFang SC","Hiragino Sans GB","Noto Sans SC",system-ui,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,monospace;
+  --ease:cubic-bezier(.22,.68,0,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;background:transparent;overflow:hidden;font-family:var(--sans);color:var(--w1);-webkit-font-smoothing:antialiased;
+  -webkit-user-select:none;user-select:none;cursor:default}
+
+/* 黑色刘海本体 */
+.shape{position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--bg);overflow:hidden;
+  border-radius:0 0 14px 14px;transition:width .36s var(--ease),height .36s var(--ease),border-radius .36s var(--ease),background .25s,opacity .25s}
+.shape.big{border-radius:0 0 18px 18px;box-shadow:0 16px 40px rgba(0,0,0,.55),0 0 0 1px var(--border)}
+.shape.tucked{background:transparent;box-shadow:none}
+.layer{position:absolute;left:0;right:0;top:0;opacity:0;pointer-events:none;transition:opacity .15s}
+.layer.on{opacity:1;pointer-events:auto;transition:opacity .2s .06s}
+
+/* 收起（露出两侧耳朵） */
+.ears{height:var(--nh);display:flex;align-items:center;justify-content:space-between;padding:0 10px;cursor:pointer}
+.ear{display:flex;align-items:center;gap:6px;height:100%}
+.count{font-size:11.5px;font-weight:600;color:var(--w2);font-variant-numeric:tabular-nums}
+.ring{width:16px;height:16px;border-radius:50%;display:grid;place-items:center}
+.ring::after{content:"";width:11px;height:11px;border-radius:50%;background:var(--bg)}
+.alert{width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 3px rgba(245,158,11,.22);transition:opacity .4s}
+.alert.dim{opacity:.42}
+.idle canvas{opacity:.55}
+
+/* 展开面板 */
+.pull{padding:calc(var(--nh) + 8px) 14px 14px}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:500;color:var(--w2);
+  margin-bottom:8px}
+.hd-actions{display:flex;align-items:center;gap:6px}
+.sec-hd .act{color:var(--w2);font-weight:500;cursor:pointer;padding:2.5px 8px;border-radius:6px;background:var(--card);
+  border:1px solid var(--border);transition:background .15s,color .15s,border-color .15s;font-size:11px}
+.sec-hd .act:hover{background:var(--subtle);color:var(--w1)}
+.sec-hd .act.on{color:var(--primary);border-color:color-mix(in oklab,var(--primary) 45%,var(--border));
+  background:color-mix(in oklab,var(--primary) 12%,var(--card))}
+
+/* 官方品牌图标与小人容器 */
+.av-wrap{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center}
+.av-brand{display:grid;place-items:center;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.14);flex:none}
+.av-brand img{width:100%;height:100%;object-fit:cover;display:block}
+.av-held{position:absolute;right:-4px;bottom:-3px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));z-index:2;pointer-events:none}
+
+/* 任务列表（lm.ikale.io 卡片与进度条风格） */
+.task-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+.task-list::-webkit-scrollbar{width:0;height:0}
+.task{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:10px;background:var(--card);
+  border:1px solid var(--border);cursor:pointer;transition:background .15s,border-color .15s}
+.task:hover{background:var(--subtle);border-color:#38404d}
+.task .info{flex:1;min-width:0}
+.task .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.task .title{font-size:12.5px;font-weight:600;color:var(--w1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task .right{display:flex;align-items:center;gap:6px;flex:none}
+.task .pct{font-size:11.5px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--primary)}
+.task .pct.done{color:var(--ok)}
+.task .pct.need{color:var(--warn)}
+.task .sub{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--w2);margin-top:2px}
+.task .sub span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task .sub .warnc{color:var(--warn);font-weight:500}
+.task .sub .el{flex:none;font-size:10.5px;color:var(--w3);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pbar{height:5px;border-radius:99px;background:var(--track);overflow:hidden;margin-top:6px}
+.pbar i{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .35s var(--ease)}
+.pbar i.done{background:var(--ok)}
+.pbar i.need{background:var(--warn)}
+.reply-btn{font-size:10px;font-weight:600;padding:1.5px 7px;border-radius:5px;background:var(--warn);color:#111;cursor:pointer}
+.empty-task{padding:11px 12px;border-radius:10px;background:var(--card);border:1px solid var(--border);font-size:11.5px;color:var(--w3);text-align:center}
+
+/* 模型额度区块 */
+.quota-sec{margin-top:11px;padding-top:10px;border-top:1px solid var(--border)}
+.quota-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.qitem{padding:7px 9px;border-radius:9px;background:var(--card);border:1px solid var(--border)}
+.qitem .ql{display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:11px;font-variant-numeric:tabular-nums}
+.qitem .qleft{display:flex;align-items:center;gap:5.5px;min-width:0}
+.qitem .qname{font-weight:500;color:var(--w1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qitem .qval{font-weight:600;font-size:11px;font-family:var(--mono);color:var(--primary);flex:none}
+.qitem .qval.warn{color:var(--warn)}
+.qitem .qval.bad{color:var(--bad)}
+.qitem .qnote{font-size:10px;color:var(--w3);margin-top:1.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qbar{height:4px;border-radius:99px;background:var(--track);overflow:hidden;margin-top:5px}
+.qbar i{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width .35s var(--ease)}
+.qbar i.warn{background:var(--warn)}
+.qbar i.bad{background:var(--bad)}
+</style></head><body>
+<div class="shape" id="shape">
+  <div class="layer" id="ears"></div>
+  <div class="layer" id="pull"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const post = m => { try { webkit.messageHandlers.notch.postMessage(m); } catch (e) {} };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let N = {w: 180, h: 32};
+let rows = [], quota = [], settings = {autoHide: true, theme: "system", avatarStyle: "byTool", soundAlert: true, launchAtLogin: false};
+let state = "collapsed", hoverTimer = 0, leaveTimer = 0, shrinkTimer = 0, tuckTimer = 0;
+let hovering = false, initialized = false;
+let prevPhases = {};
+
+/* ---------- 像素小人与官方品牌图标 ---------- */
+let bobTimers = [];
+function still(pose, box, moving, region = [-2, 0, 19]) {
+  const [x0, y0, u] = region, k = box / u, dpr = window.devicePixelRatio || 2;
+  const id = "c" + Math.random().toString(36).slice(2, 8);
+  setTimeout(() => {
+    const c = document.getElementById(id); if (!c) return;
+    const img = new Image();
+    img.onload = () => {
+      const ctx = c.getContext("2d"); ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, -(x0 + 15) * k * dpr, -(y0 + 25) * k * dpr, 45 * k * dpr, 45 * k * dpr);
+    };
+    img.src = `clawd/clawd-${pose}.svg`;
+    if (moving) { let up = false; bobTimers.push(setInterval(() => { up = !up; c.style.transform = up ? "translateY(-1px)" : ""; }, 350)); }
+  });
+  return `<canvas id="${id}" width="${box * dpr}" height="${box * dpr}" style="width:${box}px;height:${box}px;display:block;flex:none"></canvas>`;
+}
+function stopBob() { bobTimers.forEach(clearInterval); bobTimers = []; }
+const BIG = [-3, -2, 20];
+
+const OFFICIAL_PATHS = {
+  claude: "M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z",
+  openai: "M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z",
+  grok: "M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764 1.022 2.487-.653 4.246-2.34 6.022-.599.63-1.199 1.259-1.682 1.925l7.62-6.815",
+  cursor: "M22.106 5.68L12.5.135a.998.998 0 00-.998 0L1.893 5.68a.84.84 0 00-.419.726v11.186c0 .3.16.577.42.727l9.607 5.547a.999.999 0 00.998 0l9.608-5.547a.84.84 0 00.42-.727V6.407a.84.84 0 00-.42-.726zm-.603 1.176L12.228 22.92c-.063.108-.228.064-.228-.061V12.34a.59.59 0 00-.295-.51l-9.11-5.26c-.107-.062-.063-.228.062-.228h18.55c.264 0 .428.286.296.514z",
+  copilot: "M19.245 5.364c1.322 1.36 1.877 3.216 2.11 5.817.622 0 1.2.135 1.592.654l.73.964c.21.278.323.61.323.955v2.62c0 .339-.173.669-.453.868C20.239 19.602 16.157 21.5 12 21.5c-4.6 0-9.205-2.583-11.547-4.258-.28-.2-.452-.53-.453-.868v-2.62c0-.345.113-.679.321-.956l.73-.963c.392-.517.974-.654 1.593-.654l.029-.297c.25-2.446.81-4.213 2.082-5.52 2.461-2.54 5.71-2.851 7.146-2.864h.198c1.436.013 4.685.323 7.146 2.864zm-7.244 4.328c-.284 0-.613.016-.962.05-.123.447-.305.85-.57 1.108-1.05 1.023-2.316 1.18-2.994 1.18-.638 0-1.306-.13-1.851-.464-.516.165-1.012.403-1.044.996a65.882 65.882 0 00-.063 2.884l-.002.48c-.002.563-.005 1.126-.013 1.69.002.326.204.63.51.765 2.482 1.102 4.83 1.657 6.99 1.657 2.156 0 4.504-.555 6.985-1.657a.854.854 0 00.51-.766c.03-1.682.006-3.372-.076-5.053-.031-.596-.528-.83-1.046-.996-.546.333-1.212.464-1.85.464-.677 0-1.942-.157-2.993-1.18-.266-.258-.447-.661-.57-1.108-.32-.032-.64-.049-.96-.05zm-2.525 4.013c.539 0 .976.426.976.95v1.753c0 .525-.437.95-.976.95a.964.964 0 01-.976-.95v-1.752c0-.525.437-.951.976-.951zm5 0c.539 0 .976.426.976.95v1.753c0 .525-.437.95-.976.95a.964.964 0 01-.976-.95v-1.752c0-.525.437-.951.976-.951zM7.635 5.087c-1.05.102-1.935.438-2.385.906-.975 1.037-.765 3.668-.21 4.224.405.394 1.17.657 1.995.657h.09c.649-.013 1.785-.176 2.73-1.11.435-.41.705-1.433.675-2.47-.03-.834-.27-1.52-.63-1.813-.39-.336-1.275-.482-2.265-.394zm6.465.394c-.36.292-.6.98-.63 1.813-.03 1.037.24 2.06.675 2.47.968.957 2.136 1.104 2.776 1.11h.044c.825 0 1.59-.263 1.995-.657.555-.556.765-3.187-.21-4.224-.45-.468-1.335-.804-2.385-.906-.99-.088-1.875.058-2.265.394zM12 7.615c-.24 0-.525.015-.84.044.03.16.045.336.06.526l-.001.159a2.94 2.94 0 01-.014.25c.225-.022.425-.027.612-.028h.366c.187 0 .387.006.612.028-.015-.146-.015-.277-.015-.409.015-.19.03-.365.06-.526a9.29 9.29 0 00-.84-.044z",
+};
+
+function brandSVG(kind, size = 28) {
+  const k = String(kind || "").toLowerCase();
+  const r = Math.round(size * 0.26);
+  const s = Math.round(size * 0.62);
+  if (k.includes("antigravity")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#fff">
+      <img src="icons/antigravity.png" alt="Antigravity"></div>`;
+  }
+  if (k.includes("codex") || k.includes("openai") || k.includes("gpt")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#10a37f">
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="${OFFICIAL_PATHS.openai}"/></svg></div>`;
+  }
+  if (k.includes("grok")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#141416">
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="${OFFICIAL_PATHS.grok}"/></svg></div>`;
+  }
+  if (k.includes("cursor")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#18181b">
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="${OFFICIAL_PATHS.cursor}"/></svg></div>`;
+  }
+  if (k.includes("copilot")) {
+    return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#2563eb">
+      <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd"><path d="${OFFICIAL_PATHS.copilot}"/></svg></div>`;
+  }
+  return `<div class="av-brand" style="width:${size}px;height:${size}px;border-radius:${r}px;background:#d97757">
+    <svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="#fff" fill-rule="nonzero"><path d="${OFFICIAL_PATHS.claude}"/></svg></div>`;
+}
+
+const T = {
+  md: ["#eef0f4", "#cfd4de", "#4b5563", "M↓"], py: ["#7fb2f0", "#4f86d6", "#fff", "py"], swift: ["#ffab7a", "#f2703f", "#fff", "sw"],
+  js: ["#ffe27a", "#f5c430", "#5a4a10", "js"], ts: ["#8ab4ff", "#4c7fe8", "#fff", "ts"], html: ["#ff9c7f", "#ee6342", "#fff", "‹/›"],
+  css: ["#b9a4ff", "#8a6cf2", "#fff", "#"], json: ["#86dcb0", "#3fb07a", "#fff", "{ }"], img: ["#ffb3d1", "#ef7aa9", "#fff", "img"],
+  sh: ["#5b5b63", "#36363c", "#7ff0b5", ">_"], txt: ["#f4f4f6", "#d8d8de", "#8a8a92", "≡"],
+};
+const EXT = {md: "md", markdown: "md", py: "py", swift: "swift", js: "js", mjs: "js", cjs: "js", jsx: "js", ts: "ts", tsx: "ts",
+  html: "html", htm: "html", css: "css", scss: "css", json: "json", jsonl: "json", png: "img", jpg: "img", jpeg: "img", gif: "img",
+  webp: "img", svg: "img", sh: "sh", zsh: "sh", bash: "sh"};
+let iconSeq = 0;
+function icon(ext, w = 14) {
+  const [a, b, fg, g] = T[EXT[ext] || "txt"], id = "ig" + (iconSeq++);
+  const fs = g.length >= 3 ? 11 : g.length === 2 ? 13 : 17;
+  const shape = "M12 2h15.5c1.6 0 3.1.6 4.2 1.8l8.5 8.5c1.2 1.1 1.8 2.6 1.8 4.2V38c0 5.5-4.5 10-10 10H12C6.5 48 2 43.5 2 38V12C2 6.5 6.5 2 12 2z";
+  return `<svg width="${w}" height="${w * 1.14}" viewBox="0 0 44 50" style="flex:none;display:block">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>
+    <path d="${shape}" fill="url(#${id})"/><path d="M28 2.4V10c0 2.8 2.2 5 5 5h7.6" fill="rgba(255,255,255,.45)"/>
+    <text x="21.5" y="35" text-anchor="middle" font-family="SF Pro Rounded,-apple-system" font-weight="800" font-size="${fs}" fill="${fg}">${esc(g)}</text></svg>`;
+}
+
+function rowAvatar(r, size, moving, region) {
+  const style = settings.avatarStyle || "byTool";
+  const tool = String(r ? r.tool : "claude").toLowerCase();
+  const held = r && r.now && (r.now.kind === "edit" || r.now.kind === "read") ? r.now.ext : null;
+  let core = "";
+  if (style === "clawd") core = still(r ? r.pose : "sleeping", size, moving, region);
+  else if (style === "codex") core = brandSVG("codex", size);
+  else if (style === "brand") core = brandSVG(tool, size);
+  else core = tool.includes("claude") ? still(r ? r.pose : "sleeping", size, moving, region) : brandSVG(tool, size);
+  const badge = held && size >= 26 ? `<span class="av-held">${icon(held, 13)}</span>` : "";
+  return `<div class="av-wrap">${core}${badge}</div>`;
+}
+
+const lead = () => rows.find(r => r.phase === "need") || rows.find(r => r.phase === "work") || rows[0] || null;
+
+function renderEars() {
+  stopBob();
+  const l = lead(), working = rows.filter(r => r.phase === "work").length;
+  const need = rows.some(r => r.phase === "need");
+  const isIdle = !l || l.phase === "done";
+  $("shape").classList.remove("tucked");
+  let right = "";
+  if (need) right = `<span class="alert"></span>`;
+  else {
+    const p = l ? (l.pct ?? (l.steps ? Math.round(100 * (l.done || 0) / l.steps) : 0)) : 0;
+    const deg = Math.round(p * 3.6);
+    const grad = l && l.phase === "done"
+      ? `conic-gradient(from -90deg, #34d399 0deg ${deg}deg, #243040 ${deg}deg 360deg)`
+      : `conic-gradient(from -90deg, #34d399 0deg, #38bdf8 ${Math.round(deg * 0.55)}deg, #818cf8 ${deg}deg, #243040 ${deg}deg 360deg)`;
+    right = `${working > 1 ? `<span class="count">${working}</span>` : ""}<div class="ring" style="background:${grad}"></div>`;
+  }
+  $("ears").className = "layer on";
+  $("ears").innerHTML = `<div class="ears"><div class="ear${isIdle ? " idle" : ""}">${rowAvatar(l, N.h - 8, !need && !isIdle, [-2, 0, 19])}</div><div class="ear">${right}</div></div>`;
+  const dot = $("ears").querySelector(".alert");
+  if (dot) { let on = true; bobTimers.push(setInterval(() => { on = !on; dot.classList.toggle("dim", !on); }, 1200)); }
+}
+function earsSize() { return {w: N.w + 2 * 50, h: N.h}; }
+function tuckedSize() { return {w: N.w, h: N.h}; }
+
+function scheduleTuck() {
+  clearTimeout(tuckTimer);
+  if (!settings.autoHide) return;
+  tuckTimer = setTimeout(() => {
+    if (!hovering && state === "collapsed" && settings.autoHide) {
+      go("tucked");
+    }
+  }, 5000);
+}
+
+function taskRowHTML(r) {
+  const pct = Math.max(0, Math.min(100, Math.round(r.pct ?? (r.phase === "done" ? 100 : 25))));
+  const el = r.elapsed == null ? "" : r.elapsed < 1 ? "刚刚" : `${r.elapsed}m`;
+  const phaseCls = r.phase === "done" ? "done" : r.phase === "need" ? "need" : "work";
+  const reply = r.phase === "need" ? `<span class="reply-btn" data-jump="${esc(r.id)}">去回复</span>` : "";
+  return `<div class="task" data-app="${esc(r.id)}">
+    ${rowAvatar(r, 30, r.phase === "work", BIG)}
+    <div class="info">
+      <div class="top">
+        <span class="title">${esc(r.title)}</span>
+        <div class="right">
+          ${reply}
+          <span class="pct ${phaseCls}">${pct}%</span>
+        </div>
+      </div>
+      <div class="sub">
+        <span class="${r.phase === "need" ? "warnc" : ""}">${esc(r.text)}</span>
+        <span class="el">${el}</span>
+      </div>
+      <div class="pbar"><i class="${phaseCls}" style="width:${pct}%"></i></div>
+    </div>
+  </div>`;
+}
+
+function quotaItemHTML(q) {
+  const pct = Math.max(0, Math.min(100, Math.round(q.pct || 0)));
+  const cls = pct >= 90 ? "bad" : pct >= 75 ? "warn" : "";
+  return `<div class="qitem">
+    <div class="ql">
+      <div class="qleft">${brandSVG(q.name, 14)}<span class="qname">${esc(q.name)}</span></div>
+      <span class="qval ${cls}">${pct}%</span>
+    </div>
+    ${q.note ? `<div class="qnote">${esc(q.note)}</div>` : ""}
+    <div class="qbar"><i class="${cls}" style="width:${pct}%"></i></div>
+  </div>`;
+}
+
+function expandedHTML() {
+  const activeCount = rows.filter(r => r.phase === "work" || r.phase === "need").length;
+  const taskTitle = activeCount > 0 ? `正在运行 · ${activeCount}` : `最近任务 · ${rows.length}`;
+  const tasks = rows.length
+    ? `<div class="task-list">${rows.map(taskRowHTML).join("")}</div>`
+    : `<div class="empty-task">当前没有正在运行的 AI 任务</div>`;
+  const quotaBlock = quota.length
+    ? `<div class="quota-sec">
+        <div class="sec-hd"><span>模型额度</span><span class="act" data-refresh="1">刷新</span></div>
+        <div class="quota-grid">${quota.map(quotaItemHTML).join("")}</div>
+      </div>`
+    : "";
+  const hideLabel = settings.autoHide ? "5秒收缩" : "一直常驻";
+  return `<div class="pull">
+    <div class="sec-hd">
+      <span>${taskTitle}</span>
+      <div class="hd-actions">
+        <span class="act ${!settings.autoHide ? "on" : ""}" data-toggle-autohide="1" title="点击切换 5秒自动收缩 / 一直常驻">${hideLabel}</span>
+        <span class="act" data-app="">主窗口 ↗</span>
+      </div>
+    </div>
+    ${tasks}
+    ${quotaBlock}
+  </div>`;
+}
+
+function measure() {
+  const el = $("pull").firstElementChild;
+  return el ? Math.ceil(el.getBoundingClientRect().height) : N.h;
+}
+
+function go(next) {
+  clearTimeout(shrinkTimer);
+  clearTimeout(tuckTimer);
+  const prev = state;
+  state = next;
+  const shape = $("shape");
+
+  if (next === "tucked") {
+    stopBob();
+    shape.classList.remove("big");
+    shape.classList.add("tucked");
+    $("ears").classList.remove("on");
+    $("pull").classList.remove("on");
+    const size = tuckedSize();
+    shape.style.width = N.w + "px";
+    shape.style.height = N.h + "px";
+    shrinkTimer = setTimeout(() => {
+      post({type: "size", w: size.w, h: size.h, state: "tucked"});
+      $("ears").innerHTML = "";
+      $("pull").innerHTML = "";
+    }, 380);
+    return;
+  }
+
+  shape.classList.remove("tucked");
+  if (next === "collapsed") {
+    renderEars();
+    $("pull").classList.remove("on");
+    scheduleTuck();
+  } else {
+    stopBob();
+    $("pull").innerHTML = expandedHTML();
+    $("pull").classList.add("on");
+    $("ears").classList.remove("on");
+  }
+  const size = next === "collapsed" ? earsSize() : {w: 368, h: measure()};
+  shape.classList.toggle("big", next === "expanded");
+  const cur = {w: shape.offsetWidth, h: shape.offsetHeight};
+  const pad = next === "collapsed" && prev !== "expanded" ? 0 : 28;
+  post({type: "size", w: Math.max(size.w, cur.w) + 2 * pad, h: Math.max(size.h, cur.h) + pad, state: next});
+  const rest = next === "collapsed" ? 0 : 28;
+  shape.style.width = size.w + "px";
+  shape.style.height = size.h + "px";
+  shrinkTimer = setTimeout(() => {
+    post({type: "size", w: size.w + 2 * rest, h: size.h + rest, state: next});
+    if (next === "collapsed") $("pull").innerHTML = "";
+  }, 420);
+}
+
+window.notch = {
+  setup(n) {
+    N = n;
+    document.documentElement.style.setProperty("--nh", n.h + "px");
+    const s = earsSize();
+    $("shape").style.width = s.w + "px"; $("shape").style.height = s.h + "px";
+    post({type: "size", w: s.w, h: s.h, state: "collapsed"});
+    go("collapsed");
+  },
+  update(p) {
+    const newRows = p.rows || [];
+    if (p.quota) quota = p.quota;
+    const prevAutoHide = settings.autoHide;
+    if (p.settings) settings = {...settings, ...p.settings};
+
+    let shouldWake = false;
+    if (initialized) {
+      for (const r of newRows) {
+        const oldPhase = prevPhases[r.id];
+        if (!oldPhase && (r.phase === "work" || r.phase === "need")) shouldWake = true;
+        else if (oldPhase && oldPhase !== r.phase && (r.phase === "done" || r.phase === "need")) shouldWake = true;
+      }
+    }
+    prevPhases = {};
+    for (const r of newRows) prevPhases[r.id] = r.phase;
+    initialized = true;
+    rows = newRows;
+
+    if (prevAutoHide !== settings.autoHide) {
+      if (!settings.autoHide && state === "tucked") { go("collapsed"); return; }
+      if (settings.autoHide && state === "collapsed") { scheduleTuck(); }
+    }
+
+    if (state === "expanded") {
+      stopBob();
+      $("pull").innerHTML = expandedHTML();
+      const h = measure();
+      $("shape").style.height = h + "px";
+      post({type: "size", w: 368 + 56, h: h + 28, state: "expanded"});
+    } else if (state === "tucked") {
+      if (shouldWake) go("collapsed");
+    } else if (state === "collapsed") {
+      renderEars();
+      if (shouldWake) scheduleTuck();
+    }
+  },
+  shot() {},
+  collapse() { if (state === "expanded") go("collapsed"); },
+};
+
+function hover(on) {
+  if (on === hovering) return;
+  hovering = on;
+  clearTimeout(leaveTimer);
+  clearTimeout(hoverTimer);
+  if (on && state !== "expanded") {
+    hoverTimer = setTimeout(() => {
+      if (hovering && state !== "expanded") go("expanded");
+    }, 550);
+  }
+  if (!on && state === "expanded") {
+    leaveTimer = setTimeout(() => { if (!hovering) go("collapsed"); }, 480);
+  }
+}
+window.notch.hover = hover;
+const shape = $("shape");
+shape.addEventListener("mouseenter", () => hover(true));
+shape.addEventListener("mouseleave", () => hover(false));
+shape.addEventListener("click", e => {
+  const toggleAh = e.target.closest("[data-toggle-autohide]");
+  if (toggleAh) {
+    settings.autoHide = !settings.autoHide;
+    post({type: "setting", key: "autoHide", value: settings.autoHide});
+    if (state === "expanded") $("pull").innerHTML = expandedHTML();
+    return;
+  }
+  const ref = e.target.closest("[data-refresh]");
+  if (ref) { post({type: "refresh"}); return; }
+  const j = e.target.closest("[data-jump]");
+  if (j) { post({type: "jump", id: j.dataset.jump}); return; }
+  const a = e.target.closest("[data-app]");
+  if (a) { post({type: "app", id: a.dataset.app || (lead() && lead().id)}); return; }
+  if (state !== "expanded") go("expanded");
+});
+</script></body></html>

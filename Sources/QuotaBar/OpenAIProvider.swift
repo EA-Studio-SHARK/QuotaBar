@@ -38,6 +38,15 @@ enum OpenAIWham {
             let has_credits: Bool?
             let unlimited: Bool?
             let balance: Double?
+
+            enum CodingKeys: String, CodingKey { case has_credits, unlimited, balance }
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                has_credits = try container.decodeIfPresent(Bool.self, forKey: .has_credits)
+                unlimited = try container.decodeIfPresent(Bool.self, forKey: .unlimited)
+                balance = (try? container.decode(Double.self, forKey: .balance))
+                    ?? (try? container.decode(String.self, forKey: .balance)).flatMap(Double.init)
+            }
         }
 
         struct NamedLimit: Decodable {
@@ -51,31 +60,68 @@ enum OpenAIWham {
         }
     }
 
-    private static var cached: (Date, Response)?
-    private static let cacheTTL: TimeInterval = 30
-
     static func fetch() async throws -> Response {
-        if let cached, Date().timeIntervalSince(cached.0) < cacheTTL {
-            return cached.1
-        }
         let auth = try readAuth()
-        guard let token = auth.tokens?.access_token else {
+        guard var token = auth.tokens?.access_token else {
             throw QuotaError.missingCredentials("未找到 Codex/ChatGPT 登录态，请运行 codex login")
         }
+        let account = auth.tokens?.account_id
+        if let res = try? await requestUsage(token: token, accountId: account) {
+            return res
+        }
+        if let rt = auth.tokens?.refresh_token, !rt.isEmpty,
+           let refreshed = try? await refreshAccessToken(refreshToken: rt) {
+            token = refreshed
+        }
+        return try await requestUsage(token: token, accountId: account)
+    }
+
+    private static func requestUsage(token: String, accountId: String?) async throws -> Response {
         var headers = [
             "Authorization": "Bearer \(token)",
             "Accept": "application/json",
             "User-Agent": "QuotaBar/1.1",
         ]
-        if let account = auth.tokens?.account_id, !account.isEmpty {
+        if let account = accountId, !account.isEmpty {
             headers["ChatGPT-Account-Id"] = account
         }
         let url = URL(string: "https://chatgpt.com/backend-api/wham/usage")!
         let (data, http) = try await HTTP.get(url: url, headers: headers)
         _ = try HTTP.requireOK(data, http)
-        let decoded = try JSONDecoder().decode(Response.self, from: data)
-        cached = (Date(), decoded)
-        return decoded
+        return try JSONDecoder().decode(Response.self, from: data)
+    }
+
+    private static func refreshAccessToken(refreshToken: String) async throws -> String {
+        let url = URL(string: "https://auth.openai.com/oauth/token")!
+        let payload = try JSONSerialization.data(withJSONObject: [
+            "grant_type": "refresh_token",
+            "client_id": "app_EMoamEEZ73f0CkXaXp7hrann",
+            "refresh_token": refreshToken,
+        ])
+        let (data, http) = try await HTTP.post(
+            url: url,
+            headers: ["Content-Type": "application/json", "Accept": "application/json"],
+            body: payload
+        )
+        _ = try HTTP.requireOK(data, http)
+        guard let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let newAccess = obj["access_token"] as? String else {
+            throw QuotaError.other("OpenAI token 刷新未返回 access_token")
+        }
+        let path = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".codex/auth.json")
+        if let rawData = try? Data(contentsOf: path),
+           var root = (try? JSONSerialization.jsonObject(with: rawData)) as? [String: Any],
+           var tokens = root["tokens"] as? [String: Any] {
+            tokens["access_token"] = newAccess
+            if let newRefresh = obj["refresh_token"] as? String { tokens["refresh_token"] = newRefresh }
+            if let newId = obj["id_token"] as? String { tokens["id_token"] = newId }
+            root["tokens"] = tokens
+            root["last_refresh"] = ISO8601DateFormatter().string(from: Date())
+            if let out = try? JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys]) {
+                try? out.write(to: path, options: .atomic)
+            }
+        }
+        return newAccess
     }
 
     private static func readAuth() throws -> AuthFile {
@@ -127,10 +173,10 @@ enum CodexProvider {
                 ))
             }
             if let w = res.rate_limit?.secondary_window, let p = w.used_percent {
-                if primary == nil { primary = p }
+                primary = max(primary ?? p, p)
                 let reset = OpenAIWham.resetDate(from: w)
                 metrics.append(UsageMetric(
-                    label: "周额度",
+                    label: OpenAIWham.windowLabel(seconds: w.limit_window_seconds),
                     percent: p,
                     detail: Formatters.countdown(to: reset),
                     resetsAt: reset
@@ -178,4 +224,3 @@ enum CodexProvider {
         }
     }
 }
-

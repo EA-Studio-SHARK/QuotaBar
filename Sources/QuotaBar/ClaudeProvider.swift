@@ -40,7 +40,7 @@ enum ClaudeProvider {
             if let w = decoded.five_hour, let p = w.utilization {
                 let reset = ISO8601.parse(w.resets_at)
                 metrics.append(UsageMetric(
-                    label: "5 小时",
+                    label: "5小时",
                     percent: p,
                     detail: Formatters.countdown(to: reset),
                     resetsAt: reset
@@ -49,7 +49,7 @@ enum ClaudeProvider {
             if let w = decoded.seven_day, let p = w.utilization {
                 let reset = ISO8601.parse(w.resets_at)
                 metrics.append(UsageMetric(
-                    label: "7 天",
+                    label: "周限额",
                     percent: p,
                     detail: Formatters.countdown(to: reset),
                     resetsAt: reset
@@ -57,7 +57,7 @@ enum ClaudeProvider {
             }
             if let w = decoded.seven_day_opus, let p = w.utilization {
                 metrics.append(UsageMetric(
-                    label: "Opus 周",
+                    label: "Opus周",
                     percent: p,
                     detail: Formatters.countdown(to: ISO8601.parse(w.resets_at)),
                     resetsAt: ISO8601.parse(w.resets_at)
@@ -65,14 +65,17 @@ enum ClaudeProvider {
             }
             if let w = decoded.seven_day_sonnet, let p = w.utilization {
                 metrics.append(UsageMetric(
-                    label: "Sonnet 周",
+                    label: "Sonnet周",
                     percent: p,
                     detail: Formatters.countdown(to: ISO8601.parse(w.resets_at)),
                     resetsAt: ISO8601.parse(w.resets_at)
                 ))
             }
 
-            let primary = metrics.first?.percent ?? 0
+            // Menu % = worst window (5h vs weekly vs model-scoped weekly)
+            guard let primary = metrics.compactMap(\.percent).max() else {
+                throw QuotaError.decode("Claude 未返回用量窗口")
+            }
             return .fromPercent(.claude, percent: primary, metrics: metrics)
         } catch {
             return .unavailable(.claude, message: error.localizedDescription)
@@ -86,20 +89,9 @@ enum ClaudeProvider {
     }
 
     private static func readFromKeychain() -> String? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-        process.arguments = ["find-generic-password", "-s", "Claude Code-credentials", "-w"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
         do {
-            try process.run()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else { return nil }
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            guard let raw = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  let blob = try? JSONDecoder().decode(KeychainBlob.self, from: Data(raw.utf8))
-            else { return nil }
+            let data = try LocalProcess.output("/usr/bin/security", ["find-generic-password", "-s", "Claude Code-credentials", "-w"])
+            guard let blob = try? JSONDecoder().decode(KeychainBlob.self, from: data) else { return nil }
             return blob.claudeAiOauth.accessToken
         } catch {
             return nil

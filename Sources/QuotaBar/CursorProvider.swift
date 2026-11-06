@@ -43,7 +43,7 @@ enum CursorProvider {
             let percent = plan.totalPercentUsed
                 ?? plan.autoPercentUsed
                 ?? {
-                    guard let limit = plan.limit, limit > 0, let used = plan.includedSpend else { return 0.0 }
+                    guard let limit = plan.limit, limit > 0, let used = plan.includedSpend else { return nil }
                     return Double(used) / Double(limit) * 100.0
                 }()
 
@@ -82,7 +82,11 @@ enum CursorProvider {
                 metrics.append(UsageMetric(label: "API", percent: api, detail: String(format: "%.0f%%", api), resetsAt: nil))
             }
 
-            return .fromPercent(.cursor, percent: percent, metrics: metrics)
+            if let percent {
+                return .fromPercent(.cursor, percent: percent, metrics: metrics)
+            }
+            return ProviderUsage(kind: .cursor, status: .ok, primaryPercent: nil, metrics: metrics,
+                                 errorMessage: "已获取账单；接口未返回额度百分比", updatedAt: Date())
         } catch {
             return .unavailable(.cursor, message: error.localizedDescription)
         }

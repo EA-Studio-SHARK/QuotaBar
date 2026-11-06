@@ -4,4 +4,17 @@
 .swiftpm/
 DerivedData/
 dist/
+release/
+*.dmg
+*.zip
 当前任务结果.md
+交接提示词-*.md
+*交接提示词*.md
+orbit-panel/候选/
+orbit-panel/参考/
+orbit-panel/样稿*/
+orbit-panel/live.html
+orbit-panel/live-assets/
+orbit-panel/市场判断与改法.md
+orbit-panel/设计规划.md
+scripts/uitest/
